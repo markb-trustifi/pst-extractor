@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import Long from 'long'
+import { DescriptorIndexNode } from './DescriptorIndexNode.class'
 import { OutlookProperties } from './OutlookProperties'
 import { PSTDescriptorItem } from './PSTDescriptorItem.class'
 import { PSTFile } from './PSTFile.class'
@@ -29,12 +30,13 @@ export class PSTAttachment extends PSTObject {
   constructor(
     pstFile: PSTFile,
     table: PSTTableBC,
-    localDescriptorItems: Map<number, PSTDescriptorItem>
+    localDescriptorItems: Map<number, PSTDescriptorItem>,
+    descriptorIndexNode: DescriptorIndexNode | null
   ) {
-    super(pstFile)
+    super(pstFile, descriptorIndexNode || undefined)
 
     // pre-populate folder object with values
-    this.prePopulate(null, table, localDescriptorItems)
+    this.prePopulate(descriptorIndexNode, table, localDescriptorItems)
   }
 
   /**
@@ -78,6 +80,7 @@ export class PSTAttachment extends PSTObject {
    */
   public get embeddedPSTMessage(): PSTMessage | null {
     let pstNodeInputStream: PSTNodeInputStream | null = null
+    let localDescriptorItems: Map<number, PSTDescriptorItem> | null = this.localDescriptorItems
     if (this.getIntItem(0x3705) == PSTAttachment.ATTACHMENT_METHOD_EMBEDDED) {
       const item = this.pstTableItems ? this.pstTableItems.get(0x3701) : null
       if (item && item.entryValueType == 0x0102) {
@@ -107,7 +110,7 @@ export class PSTAttachment extends PSTObject {
             descriptorItemNested &&
             descriptorItemNested.subNodeOffsetIndexIdentifier > 0
           ) {
-            this.localDescriptorItems = this.pstFile.getPSTDescriptorItems(
+            localDescriptorItems = this.pstFile.getPSTDescriptorItems(
               Long.fromNumber(descriptorItemNested.subNodeOffsetIndexIdentifier)
             )
           }
@@ -120,12 +123,12 @@ export class PSTAttachment extends PSTObject {
 
       try {
         const attachmentTable: PSTTableBC = new PSTTableBC(pstNodeInputStream)
-        if (this.localDescriptorItems && this.descriptorIndexNode) {
+        if (localDescriptorItems && this.descriptorIndexNode) {
           return PSTUtil.createAppropriatePSTMessageObject(
             this.pstFile,
             this.descriptorIndexNode,
             attachmentTable,
-            this.localDescriptorItems
+            localDescriptorItems
           )
         }
       } catch (err) {

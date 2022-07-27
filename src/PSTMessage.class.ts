@@ -560,7 +560,8 @@ export class PSTMessage extends PSTObject {
       return new PSTAttachment(
         this.pstFile,
         attachmentDetailsTable,
-        attachmentDescriptorItems
+        attachmentDescriptorItems,
+        this.descriptorIndexNode
       )
     }
 
