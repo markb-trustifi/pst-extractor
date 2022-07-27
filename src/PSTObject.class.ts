@@ -296,6 +296,9 @@ export abstract class PSTObject {
    */
   public get stringCodepage(): string | undefined {
     // try and get the codepage
+    if (this.pstFile.ansiEncoding) {
+      return this.pstFile.ansiEncoding;
+    }
     let cpItem = this.pstTableItems ? this.pstTableItems.get(0x3ffd) : null // PidTagMessageCodepage
     if (cpItem == null) {
       cpItem = this.pstTableItems ? this.pstTableItems.get(0x3fde) : null // PidTagInternetCodepage

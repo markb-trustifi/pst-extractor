@@ -10,6 +10,7 @@ import { PSTTableBC } from './PSTTableBC.class'
 import { PSTTableItem } from './PSTTableItem.class'
 import { PSTUtil } from './PSTUtil.class'
 import { NodeMap } from './NodeMap.class'
+import { PSTOpts } from './PSTOpts'
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const uuidparse = require('uuid-parse')
 
@@ -51,6 +52,11 @@ export class PSTFile {
     ['00062040-0000-0000-C000-000000000046', 14],
   ])
 
+  private _ansiEncoding?: string
+  get ansiEncoding(): string | undefined {
+    return this._ansiEncoding;
+  }
+
   // the type of encryption the files uses
   private _encryptionType = 0
   get encryptionType(): number {
@@ -91,9 +97,9 @@ export class PSTFile {
    * @param {string} fileName
    * @memberof PSTFile
    */
-  public constructor(pstBuffer: Buffer)
-  public constructor(fileName: string)
-  public constructor(arg: any) {
+  public constructor(pstBuffer: Buffer, opts?: PSTOpts)
+  public constructor(fileName: string, opts?: PSTOpts)
+  public constructor(arg: any, opts?: PSTOpts) {
     if (arg instanceof Buffer) {
       // use an in-memory buffer of PST
       this.pstBuffer = arg
@@ -143,6 +149,8 @@ export class PSTFile {
     if (this._encryptionType === 0x02) {
       throw new Error('PSTFile::open PST is encrypted')
     }
+
+    this._ansiEncoding = opts && opts.ansiEncoding;
 
     // build out name to id map
     this.processNameToIDMap()
@@ -686,17 +694,17 @@ export class PSTFile {
         }
         throw new Error(
           'PSTFile::findBtreeItem Unable to find ' +
-            index +
-            ' is desc: ' +
-            descTree
+          index +
+          ' is desc: ' +
+          descTree
         )
       }
     }
     throw new Error(
       'PSTFile::findBtreeItem Unable to find node: ' +
-        index +
-        ' is desc: ' +
-        descTree
+      index +
+      ' is desc: ' +
+      descTree
     )
   }
 
@@ -748,7 +756,7 @@ export class PSTFile {
     if (sig != 0x2) {
       throw new Error(
         'PSTFile::getPSTDescriptorItems Unable to process descriptor node, bad signature: ' +
-          sig
+        sig
       )
     }
 
