@@ -1,6 +1,6 @@
 {
-  "name": "pst-extractor",
-  "version": "1.9.0",
+  "name": "@hiraokahypertools/pst-extractor",
+  "version": "0.1.0",
   "description": "Extract objects from MS Outlook/Exchange PST files",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -14,8 +14,11 @@
     "test:build": "run-s build",
     "test:unit": "cross-env CI=1 jest --coverage --reporters=default --reporters=jest-junit"
   },
-  "repository": "epfromer/pst-extractor",
-  "author": "Ed Pfromer (epfromer@gmail.com)",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/HiraokaHyperTools/pst-extractor.git"
+  },
+  "author": "Ed Pfromer (epfromer@gmail.com), kenjiuno",
   "license": "MIT",
   "devDependencies": {
     "@babel/core": "^7.17.8",
