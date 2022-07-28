@@ -423,6 +423,9 @@ export class PSTMessage extends PSTObject {
    * @memberof PSTMessage
    */
   private getCodepage(): string | null | undefined {
+    if (this.pstFile.ansiEncoding) {
+      return null;
+    }
     let cpItem = this.pstTableItems
       ? this.pstTableItems.get(OutlookProperties.PR_INTERNET_CPID)
       : null
