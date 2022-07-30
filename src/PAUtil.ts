@@ -2,6 +2,7 @@
  * PST adapter utilities
  */
 
+import { Property } from "@babel/types";
 import { msftUuidStringify } from "./msftUuidStringify";
 import { NodeMap } from "./NodeMap.class"
 import { getHeapFromMain } from "./PHUtil";
@@ -9,6 +10,10 @@ import { PLNode } from "./PLNode"
 import { getPropertyContext } from "./PropertyContextUtil";
 import { PropertyValueResolver } from "./PropertyValueResolver";
 import { PSTUtil } from "./PSTUtil.class";
+
+export interface PropertyFinder {
+  findByKey(key: number): Property | undefined;
+}
 
 const guidMap: Map<string, number> = new Map([
   ['00020329-0000-0000-C000-000000000046', 0],
@@ -144,4 +149,12 @@ export async function processNameToIDMap(
   }
 
   return nodeMap;
+}
+
+export function createPropertyFinder(props: Property[]): PropertyFinder {
+  return {
+    findByKey(key) {
+      return props.find(it => it.key);
+    },
+  } as PropertyFinder;
 }
