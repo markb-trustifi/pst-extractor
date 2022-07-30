@@ -10,6 +10,11 @@ import { PSTUtil } from "./PSTUtil.class";
 
 export type ReadFile = (buffer: ArrayBuffer, offset: number, length: number, position: number) => Promise<number>;
 
+export interface ReadFileApi {
+  readFile: ReadFile,
+  close: () => void,
+}
+
 function surelyReader(readFile: ReadFile): ReadFile {
   return async (buffer: ArrayBuffer, offset: number, length: number, position: number): Promise<number> => {
     const bytesRead = await readFile(buffer, offset, length, position);
@@ -188,8 +193,8 @@ interface BlockPtr {
   isData: boolean;
 }
 
-export async function openLowPst(readFile: ReadFile): Promise<PLStore> {
-  const surelyRead = surelyReader(readFile);
+export async function openLowPst(api: ReadFileApi): Promise<PLStore> {
+  const surelyRead = surelyReader(api.readFile);
 
   const buffer = new ArrayBuffer(1024);
   const view = new DataView(buffer, 0, 1024);
@@ -501,5 +506,6 @@ export async function openLowPst(readFile: ReadFile): Promise<PLStore> {
 
   return {
     getOneNodeBy,
+    close: () => api.close(),
   } as PLStore;
 }

@@ -15,7 +15,6 @@ describe('PLUtil/PHUtil tests', () => {
   it('openLowPst and so on', async () => {
     const file = await fs.promises.open(filePath, "r");
     try {
-
       async function readFile(
         buffer: ArrayBuffer, offset: number, length: number, position: number
       ): Promise<number> {
@@ -24,7 +23,7 @@ describe('PLUtil/PHUtil tests', () => {
         return bytesRead;
       }
 
-      const lowPst = await openLowPst(readFile);
+      const lowPst = await openLowPst({ readFile, close: () => { } });
       const rootNode = await lowPst.getOneNodeBy(290);
 
       const heap = await getHeapFromMain(rootNode.getNodeReader());
@@ -47,7 +46,7 @@ describe('PLUtil/PHUtil tests', () => {
           alphaHeap,
           resolver
         );
-        console.log(await (await alphaMore.rows())[0].list());
+        //console.log(await (await alphaMore.rows())[0].list());
       }
 
       //console.log(await pc.list());
