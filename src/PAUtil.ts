@@ -2,11 +2,11 @@
  * PST adapter utilities
  */
 
-import { Property } from "@babel/types";
 import { msftUuidStringify } from "./msftUuidStringify";
 import { NodeMap } from "./NodeMap.class"
-import { getHeapFromMain } from "./PHUtil";
+import { getHeapFromMain, willUnzip1 } from "./PHUtil";
 import { PLNode } from "./PLNode"
+import { Property } from "./Property";
 import { getPropertyContext } from "./PropertyContextUtil";
 import { PropertyValueResolver } from "./PropertyValueResolver";
 import { PSTUtil } from "./PSTUtil.class";
@@ -106,11 +106,19 @@ export async function processNameToIDMap(
 
   const nodeMap = new NodeMap();
 
+  (await import("fs")).writeFileSync("C:/A/A1", nameToIdByte);
+  (await import("fs")).writeFileSync("C:/A/A2", stringNameToIdByte);
+  (await import("fs")).writeFileSync("C:/A/A3", guids);
+
   // process the entries
   for (let x = 0; x + 8 < nameToIdByte.length; x += 8) {
     const key: number = nameToIdByteView.getUint32(x, true);
     let guid: number = nameToIdByteView.getUint16(x + 4, true);
     let propId: number = nameToIdByteView.getUint16(x + 6, true);
+
+    if (key == 0x55555555) {
+      break;
+    }
 
     const PS_PUBLIC_STRINGS = 0;
     const PS_MAPI = 12;
@@ -154,7 +162,7 @@ export async function processNameToIDMap(
 export function createPropertyFinder(props: Property[]): PropertyFinder {
   return {
     findByKey(key) {
-      return props.find(it => it.key);
+      return props.find(it => it.key === key);
     },
   } as PropertyFinder;
 }

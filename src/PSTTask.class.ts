@@ -1,28 +1,25 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { DescriptorIndexNode } from './DescriptorIndexNode.class'
 import { OutlookProperties } from './OutlookProperties'
-import { PSTDescriptorItem } from './PSTDescriptorItem.class'
 import { PSTMessage } from './PSTMessage.class'
-import { PSTTableBC } from './PSTTableBC.class'
 import { PSTFile } from './PSTFile.class'
 import { RecurrencePattern } from './RecurrencePattern.class'
+import { PLNode } from './PLNode'
+import { PropertyFinder } from './PAUtil'
 
 export class PSTTask extends PSTMessage {
   /**
    * Creates an instance of PSTTask.
    * @param {PSTFile} pstFile
    * @param {DescriptorIndexNode} descriptorIndexNode
-   * @param {PSTTableBC} [table]
    * @param {Map<number, PSTDescriptorItem>} [localDescriptorItems]
    * @memberof PSTTask
    */
   constructor(
     pstFile: PSTFile,
-    descriptorIndexNode: DescriptorIndexNode,
-    table?: PSTTableBC,
-    localDescriptorItems?: Map<number, PSTDescriptorItem>
+    node: PLNode,
+    propertyFinder: PropertyFinder
   ) {
-    super(pstFile, descriptorIndexNode, table, localDescriptorItems)
+    super(pstFile, node, propertyFinder);
   }
 
   /**

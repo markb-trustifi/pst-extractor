@@ -6,12 +6,18 @@ import { PSTDescriptorItem } from './PSTDescriptorItem.class'
 import { PSTFile } from './PSTFile.class'
 import { PSTNodeInputStream } from './PSTNodeInputStream.class'
 import { PSTObject } from './PSTObject.class'
-import { PSTTable7C } from './PSTTable7C.class'
-import { PSTTableBC } from './PSTTableBC.class'
 import { PSTUtil } from './PSTUtil.class'
 import { LZFu } from './LZFu.class'
 import { PSTAttachment } from './PSTAttachment.class'
 import { PSTRecipient } from './PSTRecipient.class'
+import { PLNode } from './PLNode'
+import { PropertyValueResolver } from './PropertyValueResolver'
+import { createPropertyFinder, PropertyFinder } from './PAUtil'
+import { PSTAttachmentCollection } from './PSTAttachmentCollection'
+import { getHeapFromSub } from './PHUtil'
+import { getTableContext } from './TableContextUtil'
+import { KeyedDelay } from './KeyedDelay'
+import { PSTRecipientCollection } from './PSTRecipientCollection'
 
 enum PidTagMessageFlags {
   MSGFLAG_READ = 0x01,
@@ -25,9 +31,6 @@ enum PidTagMessageFlags {
 }
 
 export class PSTMessage extends PSTObject {
-  private recipientTable: PSTTable7C | null = null
-  private attachmentTable: PSTTable7C | null = null
-
   public static IMPORTANCE_LOW = 0
   public static IMPORTANCE_NORMAL = 1
   public static IMPORTANCE_HIGH = 2
@@ -42,21 +45,15 @@ export class PSTMessage extends PSTObject {
    * an exception being raised).
    * @param {PSTFile} pstFile
    * @param {DescriptorIndexNode} descriptorIndexNode
-   * @param {PSTTableBC} [table]
    * @param {Map<number, PSTDescriptorItem>} [localDescriptorItems]
    * @memberof PSTMessage
    */
   constructor(
     pstFile: PSTFile,
-    descriptorIndexNode: DescriptorIndexNode,
-    pstTableBC?: PSTTableBC,
-    localDescriptorItems?: Map<number, PSTDescriptorItem>
+    node: PLNode,
+    propertyFinder: PropertyFinder
   ) {
-    super(pstFile, descriptorIndexNode)
-    if (pstTableBC) {
-      // pre-populate folder object with values
-      this.prePopulate(descriptorIndexNode, pstTableBC, localDescriptorItems)
-    }
+    super(pstFile, node, propertyFinder);
   }
 
   /*
@@ -184,82 +181,56 @@ export class PSTMessage extends PSTObject {
     )
   }
 
-  /*
-        Recipients
-    */
-  /**
-   * Find, extract and load up all of the attachments in this email
-   * @private
-   * @memberof PSTMessage
-   */
-  private processRecipients(): void {
+  //#region Recipients
+  //#endregion
+
+  async recipientCollection(): Promise<PSTRecipientCollection> {
     try {
-      const recipientTableKey = 0x0692
-      if (
-        this.recipientTable == null &&
-        this.localDescriptorItems != null &&
-        this.localDescriptorItems.has(recipientTableKey)
-      ) {
-        const item:
-          | PSTDescriptorItem
-          | undefined = this.localDescriptorItems.get(recipientTableKey)
-        let descriptorItems: Map<number, PSTDescriptorItem> | null = new Map()
-        if (item && item.subNodeOffsetIndexIdentifier > 0) {
-          descriptorItems = this.pstFile.getPSTDescriptorItems(
-            Long.fromNumber(item.subNodeOffsetIndexIdentifier)
-          )
-        }
-        this.recipientTable = new PSTTable7C(
-          new PSTNodeInputStream(this.pstFile, item),
-          descriptorItems
-        )
+      const reader = this._node.getNodeReader();
+
+      if (await reader.numSubDataArray(0x0692) === 1) {
+        const heap = await getHeapFromSub(
+          reader,
+          0x0692
+        );
+        const tc = await getTableContext(
+          heap,
+          this.pstFile.resolver
+        );
+
+        const rows = await tc.rows();
+
+        return new PSTRecipientCollection(
+          rows.length,
+          async (index) => {
+            if (!(index in rows)) {
+              throw new RangeError(`recipient index ${index} out of range`);
+            }
+            const propertyFinder = createPropertyFinder(await rows[index].list());
+            return new PSTRecipient(
+              this.pstFile,
+              this._node,
+              propertyFinder
+            );
+          }
+        );
       }
+
+      return new PSTRecipientCollection(
+        0,
+        index => {
+          throw new Error("no recipient exists")
+        }
+      );
     } catch (err) {
-      console.error('PSTMessage::processRecipients\n' + err)
-      this.recipientTable = null
-    }
-  }
-
-  /**
-   * Get the recipients table.
-   * @readonly
-   * @type {number}
-   * @memberof PSTMessage
-   */
-  public get numberOfRecipients(): number {
-    if (this.recipientTable === null) {
-      this.processRecipients()
-    }
-    return this.recipientTable ? this.recipientTable.rowCount : 0
-  }
-
-  /**
-   * Get specific recipient.
-   * @param {number} recipientNumber
-   * @returns {PSTRecipient}
-   * @memberof PSTMessage
-   */
-  public getRecipient(recipientNumber: number): PSTRecipient | null {
-    if (!this.recipientTable) {
-      this.processRecipients()
-    }
-    if (!this.recipientTable) {
-      throw new Error('PSTMessage::getRecipient recipientTable is null')
-    }
-
-    if (
-      recipientNumber >= this.numberOfRecipients ||
-      recipientNumber >= this.recipientTable.getItems().length
-    ) {
-      throw new Error(
-        'PSTMessage::getRecipient unable to fetch recipient number ' +
-          recipientNumber
+      console.error(
+        "PSTFolder::getSubFolders Can't get child folders for folder " +
+        this.displayName +
+        '\n' +
+        err
       )
+      throw err
     }
-    const recipientDetails = this.recipientTable.getItems()[recipientNumber]
-    return recipientDetails
-      ? new PSTRecipient(this.pstFile, recipientDetails)
-      : null
   }
 
   /**
@@ -314,12 +285,7 @@ export class PSTMessage extends PSTObject {
    * @memberof PSTMessage
    */
   public get body(): string {
-    const codepage = this.getCodepage()
-    if (codepage) {
-      return this.getStringItem(OutlookProperties.PR_BODY, 0, codepage)
-    } else {
-      return this.getStringItem(OutlookProperties.PR_BODY)
-    }
+    return this.getStringItem(OutlookProperties.PR_BODY)
   }
 
   /**
@@ -340,22 +306,14 @@ export class PSTMessage extends PSTObject {
    * @memberof PSTMessage
    */
   public get bodyRTF(): string {
+    const item = this._propertyFinder.findByKey(0x1009);
     // do we have an entry for it?
-    if (this.pstTableItems && this.pstTableItems.has(0x1009)) {
-      // is it a reference?
-      const item = this.pstTableItems.get(0x1009)
-      if (item && item.data.length > 0) {
-        return LZFu.decode(item.data)
-      }
-      const ref = item ? item.entryValueReference : null
-      if (ref) {
-        const descItem = this.localDescriptorItems
-          ? this.localDescriptorItems.get(ref)
-          : null
-        if (descItem != null) {
-          return LZFu.decode(descItem.getData())
-        }
-      }
+    if (true
+      && item !== undefined
+      && item.value instanceof ArrayBuffer
+      && item.value.byteLength >= 1
+    ) {
+      return LZFu.decode(Buffer.from(item.value));
     }
     return ''
   }
@@ -416,168 +374,73 @@ export class PSTMessage extends PSTObject {
   }
 
   /**
-   * Gets codepage to use.
-   * TODO - does this work?
-   * @private
-   * @returns {(string | null | undefined)}
-   * @memberof PSTMessage
-   */
-  private getCodepage(): string | null | undefined {
-    if (this.pstFile.ansiEncoding) {
-      return null;
-    }
-    let cpItem = this.pstTableItems
-      ? this.pstTableItems.get(OutlookProperties.PR_INTERNET_CPID)
-      : null
-    if (cpItem == null) {
-      cpItem = this.pstTableItems
-        ? this.pstTableItems.get(OutlookProperties.PR_MESSAGE_CODEPAGE)
-        : null
-    }
-    if (cpItem != null) {
-      return PSTUtil.getInternetCodePageCharset(cpItem.entryValueReference)
-    }
-    return null
-  }
-
-  /**
    * Contains the HTML version of the message text.
    * @readonly
    * @type {string}
    * @memberof PSTMessage
    */
   public get bodyHTML(): string {
-    const codepage = this.getCodepage()
-    if (codepage) {
-      return this.getStringItem(OutlookProperties.PR_BODY_HTML, 0, codepage)
-    } else {
-      return this.getStringItem(OutlookProperties.PR_BODY_HTML)
-    }
+    return this.getStringItem(OutlookProperties.PR_BODY_HTML)
   }
 
-  /*
-        Attachments
-    */
-  /**
-   * Processes table which holds attachments.
-   * @private
-   * @memberof PSTMessage
-   */
-  private processAttachments(): void {
-    const attachmentTableKey = 0x0671
-    if (
-      this.attachmentTable == null &&
-      this.localDescriptorItems != null &&
-      this.localDescriptorItems.has(attachmentTableKey)
-    ) {
-      const item = this.localDescriptorItems.get(attachmentTableKey)
-      let descriptorItems: Map<number, PSTDescriptorItem> = new Map()
-      if (item && item.subNodeOffsetIndexIdentifier > 0) {
-        descriptorItems = this.pstFile.getPSTDescriptorItems(
-          Long.fromValue(item.subNodeOffsetIndexIdentifier)
-        )
-      }
-      this.attachmentTable = new PSTTable7C(
-        new PSTNodeInputStream(this.pstFile, item),
-        descriptorItems
-      )
-    }
-  }
+  //#region Attachments
+  //#endregion
 
   /**
-   * Number of attachments by counting rows in attachment table.
-   * @readonly
-   * @type {number}
-   * @memberof PSTMessage
+   * Get folders in one fell swoop, since there's not usually thousands of them.
    */
-  public get numberOfAttachments(): number {
+  async attachmentCollection(): Promise<PSTAttachmentCollection> {
     try {
-      this.processAttachments()
-    } catch (err) {
-      console.error('PSTMessage::numberOfAttachments\n' + err)
-      return 0
-    }
-    return this.attachmentTable ? this.attachmentTable.rowCount : 0
-  }
+      const reader = this._node.getNodeReader();
 
-  /**
-   * Get specific attachment from table using index.
-   * @param {number} attachmentNumber
-   * @returns {PSTAttachment}
-   * @memberof PSTMessage
-   */
-  public getAttachment(attachmentNumber: number): PSTAttachment {
-    this.processAttachments()
+      if (await reader.numSubDataArray(0x0671) === 1) {
+        const heap = await getHeapFromSub(
+          reader,
+          0x0671
+        );
+        const tc = await getTableContext(
+          heap,
+          this.pstFile.resolver
+        );
 
-    let attachmentCount = 0
-    if (this.attachmentTable != null) {
-      attachmentCount = this.attachmentTable.rowCount
-    }
-    if (!this.attachmentTable) {
-      throw new Error('PSTMessage::getAttachment attachmentTable is null')
-    }
-    if (!this.localDescriptorItems) {
-      throw new Error('PSTMessage::getAttachment localDescriptorItems is null')
-    }
-    if (attachmentNumber >= attachmentCount) {
-      throw new Error(
-        'PSTMessage::getAttachment unable to fetch attachment number ' +
-          attachmentNumber
-      )
-    }
+        const rows = await tc.rows();
 
-    // we process the C7 table here, basically we just want the attachment local descriptor...
-    const attachmentDetails = this.attachmentTable.getItems()[attachmentNumber]
-    const attachmentTableItem = attachmentDetails.get(0x67f2)
-    if (!attachmentTableItem) {
-      throw new Error('PSTMessage::getAttachment attachmentTableItem is null')
-    }
-    const descriptorItemId = attachmentTableItem.entryValueReference
-    if (!descriptorItemId) {
-      throw new Error('PSTMessage::getAttachment descriptorItemId is null')
-    }
-
-    // get the local descriptor for the attachmentDetails table.
-    const descriptorItem = this.localDescriptorItems.get(descriptorItemId)
-    if (!descriptorItem) {
-      throw new Error('PSTMessage::getAttachment descriptorItem is null')
-    }
-
-    // try and decode it
-    const attachmentData: Buffer = descriptorItem.getData()
-    if (attachmentData != null && attachmentData.length > 0) {
-      const attachmentDetailsTable: PSTTableBC = new PSTTableBC(
-        new PSTNodeInputStream(this.pstFile, descriptorItem)
-      )
-
-      // create our all-precious attachment object.
-      // note that all the information that was in the c7 table is
-      // repeated in the eb table in attachment data.
-      // so no need to pass it...
-      let attachmentDescriptorItems: Map<number, PSTDescriptorItem> = new Map()
-      if (descriptorItem.subNodeOffsetIndexIdentifier > 0) {
-        attachmentDescriptorItems = this.pstFile.getPSTDescriptorItems(
-          Long.fromNumber(descriptorItem.subNodeOffsetIndexIdentifier)
-        )
+        return new PSTAttachmentCollection(
+          rows.length,
+          async (index) => {
+            if (!(index in rows)) {
+              throw new RangeError(`attachment index ${index} out of range`);
+            }
+            const propertyFinder = createPropertyFinder(await rows[index].list());
+            return new PSTAttachment(
+              this.pstFile,
+              this._node,
+              propertyFinder
+            );
+          }
+        );
       }
-      return new PSTAttachment(
-        this.pstFile,
-        attachmentDetailsTable,
-        attachmentDescriptorItems,
-        this.descriptorIndexNode
-      )
-    }
 
-    throw new Error(
-      'PSTMessage::getAttachment unable to fetch attachment number ' +
-        attachmentNumber +
-        ', unable to read attachment details table'
-    )
+      return new PSTAttachmentCollection(
+        0,
+        index => {
+          throw new Error("no attachment exists")
+        }
+      );
+    } catch (err) {
+      console.error(
+        "PSTFolder::getSubFolders Can't get child folders for folder " +
+        this.displayName +
+        '\n' +
+        err
+      )
+      throw err
+    }
   }
 
-  /*
-        Miscellaneous properties
-    */
+  //#region Miscellaneous properties
+  //#endregion
+
   /**
    * Importance of email (sender determined)
    * https://msdn.microsoft.com/en-us/library/cc815346(v=office.12).aspx
@@ -1302,38 +1165,37 @@ export class PSTMessage extends PSTObject {
     )
 
     const categories: string[] = []
-    if (this.pstTableItems && this.pstTableItems.has(keywordCategory)) {
+    const item = this._propertyFinder.findByKey(keywordCategory);
+    if (true
+      && item !== undefined
+      && item.value instanceof ArrayBuffer
+    ) {
+      const data = item.value;
       try {
-        const item = this.pstTableItems.get(keywordCategory)
-        if (item && item.data.length == 0) {
-          return []
-        }
-        if (item) {
-          const categoryCount: number = item.data[0]
+        if (data.byteLength !== 0) {
+          const view = new DataView(data);
+          const dataBuffer = Buffer.from(data);
+          const categoryCount: number = view.getUint8(0);
           if (categoryCount > 0) {
             const categories: string[] = []
             const offsets: number[] = []
             for (let x = 0; x < categoryCount; x++) {
-              offsets[x] = PSTUtil.convertBigEndianBytesToLong(
-                item.data,
-                x * 4 + 1,
-                (x + 1) * 4 + 1
-              ).toNumber()
+              offsets[x] = view.getUint32(x * 4 + 1, true);
             }
             for (let x = 0; x < offsets.length - 1; x++) {
               const start = offsets[x]
               const end = offsets[x + 1]
               const length = end - start
               const buf: Buffer = Buffer.alloc(length)
-              PSTUtil.arraycopy(item.data, start, buf, 0, length)
+              PSTUtil.arraycopy(dataBuffer, start, buf, 0, length)
               const name: string = Buffer.from(buf).toString()
               categories[x] = name
             }
             const start = offsets[offsets.length - 1]
-            const end = item.data.length
+            const end = data.byteLength
             const length = end - start
             const buf: Buffer = Buffer.alloc(length)
-            PSTUtil.arraycopy(item.data, start, buf, 0, length)
+            PSTUtil.arraycopy(dataBuffer, start, buf, 0, length)
             const name: string = Buffer.from(buf).toString()
             categories[categories.length - 1] = name
           }
@@ -1514,16 +1376,13 @@ export class PSTMessage extends PSTObject {
         lastVerbExecutionTime: this.lastVerbExecutionTime,
         urlCompName: this.urlCompName,
         attrHidden: this.attrHidden,
-        numberOfRecipients: this.numberOfRecipients,
         taskStartDate: this.taskStartDate,
         taskDueDate: this.taskDueDate,
         reminderSet: this.reminderSet,
         reminderDelta: this.reminderDelta,
         colorCategories: this.colorCategories,
-        numberOfAttachments: this.numberOfAttachments,
         conversationId: this.conversationId,
         isConversationIndexTracking: this.isConversationIndexTracking,
-        recipientTable: this.recipientTable,
       },
       this
     )

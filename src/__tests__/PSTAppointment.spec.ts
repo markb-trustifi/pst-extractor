@@ -1,26 +1,28 @@
 import { PSTFile } from '../PSTFile.class'
 import { PSTFolder } from '../PSTFolder.class'
 import { PSTAppointment } from '../PSTAppointment.class'
+import { openPstFile } from '../index'
+import { PSTFolderCollection } from '../PSTFolderCollection'
 const resolve = require('path').resolve
 let pstFile: PSTFile
 let folder: PSTFolder
 
-beforeAll(() => {
-  pstFile = new PSTFile(
+beforeAll(async () => {
+  pstFile = await openPstFile(
     resolve('./src/__tests__/testdata/mtnman1965@outlook.com.ost')
   )
 
   // get to Calendar folder
-  let childFolders: PSTFolder[] = pstFile.getRootFolder().getSubFolders()
-  folder = childFolders[1] // Root - Mailbox
-  childFolders = folder.getSubFolders()
-  folder = childFolders[4] // IPM_SUBTREE
-  childFolders = folder.getSubFolders()
-  folder = childFolders[11] // Calendar
+  let childFolders: PSTFolderCollection = await (await pstFile.getRootFolder()).folderCollection()
+  folder = await childFolders.subFolder(1) // Root - Mailbox
+  childFolders = await folder.folderCollection()
+  folder = await childFolders.subFolder(4) // IPM_SUBTREE
+  childFolders = await folder.folderCollection()
+  folder = await childFolders.subFolder(11) // Calendar
 })
 
-afterAll(() => {
-  pstFile.close()
+afterAll(async () => {
+  await pstFile?.close()
 })
 
 describe('PSTAppointment tests', () => {
@@ -28,8 +30,10 @@ describe('PSTAppointment tests', () => {
     expect(folder.displayName).toEqual('Calendar')
   })
 
-  it('should have two calendar items', () => {
-    let appt: PSTAppointment = folder.getNextChild()
+  it('should have two calendar items', async () => {
+    const collection = await folder.itemCollection();
+
+    let appt: PSTAppointment = (await collection.item(0)) as PSTAppointment
     // console.log(JSON.stringify(appt, null, 2));
     expect(appt.messageClass).toEqual('IPM.Appointment')
     expect(appt.subject).toEqual('get lunch')
@@ -37,7 +41,7 @@ describe('PSTAppointment tests', () => {
     expect(appt.senderName).toEqual('Mountain Man')
     expect(appt.duration).toEqual(60)
 
-    appt = folder.getNextChild()
+    appt = (await collection.item(1)) as PSTAppointment
     // console.log(JSON.stringify(appt, null, 2));
     expect(appt.messageClass).toEqual('IPM.Appointment')
     expect(appt.subject).toEqual('workout')

@@ -4,36 +4,42 @@ import { PSTFolder } from '../PSTFolder.class'
 import { PSTMessage } from '../PSTMessage.class'
 import { PSTTask } from '../PSTTask.class'
 import { PSTAttachment } from '../PSTAttachment.class'
+import { openPstFile } from '../index'
+import { PSTFolderCollection } from '../PSTFolderCollection'
 const resolve = require('path').resolve
 let pstFile: PSTFile
 let subtreeFolder: PSTFolder
 
-beforeAll(() => {
-  pstFile = new PSTFile(
+beforeAll(async () => {
+  pstFile = await openPstFile(
     resolve('./src/__tests__/testdata/mtnman1965@outlook.com.ost')
   )
 
   // get to IPM_SUBTREE folder
-  let childFolders: PSTFolder[] = pstFile.getRootFolder().getSubFolders()
-  subtreeFolder = childFolders[1] // Root - Mailbox
-  childFolders = subtreeFolder.getSubFolders()
-  subtreeFolder = childFolders[4] // IPM_SUBTREE
+  let childFolders: PSTFolderCollection = await (await pstFile.getRootFolder()).folderCollection()
+  subtreeFolder = await childFolders.subFolder(1) // Root - Mailbox
+  expect(subtreeFolder.displayName).toBe("Root - Mailbox");
+  childFolders = await subtreeFolder.folderCollection()
+  subtreeFolder = await childFolders.subFolder(4) // IPM_SUBTREE
+  expect(subtreeFolder.displayName).toBe("IPM_SUBTREE");
 })
 
-afterAll(() => {
-  pstFile.close()
+afterAll(async () => {
+  await pstFile.close()
 })
 
 describe('PSTAttachment tests', () => {
-  it('should have a contact with an attachment', () => {
-    const childFolders = subtreeFolder.getSubFolders()
-    const folder = childFolders[10] // Contacts
-    const contact: PSTContact = folder.getNextChild()
+  it('should have a contact with an attachment', async () => {
+    const childFolders = await subtreeFolder.folderCollection()
+    const folder = await childFolders.subFolder(10) // Contacts
+    const itemCollection = await folder.itemCollection()
+    const contact: PSTContact = await itemCollection.item(0) as PSTContact
     expect(contact.messageClass).toEqual('IPM.Contact')
     expect(contact.hasAttachments).toBeTruthy()
 
     // first attachment is contact picture
-    let attachment: PSTAttachment = contact.getAttachment(0)
+    const attachmentCollection = await contact.attachmentCollection()
+    let attachment: PSTAttachment = await attachmentCollection.attachment(0)
     expect(attachment.size).toEqual(14055)
     expect(attachment.longFilename).toEqual('ContactPicture.jpg')
     expect(attachment.creationTime).toEqual(
@@ -41,7 +47,7 @@ describe('PSTAttachment tests', () => {
     )
 
     // second attachment is never gonna give you up
-    attachment = contact.getAttachment(1)
+    attachment = await attachmentCollection.attachment(1)
     expect(attachment.size).toEqual(8447)
     expect(attachment.longFilename).toEqual('rickroll.jpg')
     expect(attachment.creationTime).toEqual(
@@ -49,13 +55,14 @@ describe('PSTAttachment tests', () => {
     )
   })
 
-  it('should have a task with an attachment', () => {
-    const childFolders = subtreeFolder.getSubFolders()
-    const folder = childFolders[17] // Tasks
-    const task: PSTTask = folder.getNextChild()
+  it('should have a task with an attachment', async () => {
+    const childFolders = await subtreeFolder.folderCollection()
+    const folder = await childFolders.subFolder(17) // Tasks
+    const itemCollection = await folder.itemCollection()
+    const task: PSTTask = (await itemCollection.item(0)) as PSTTask
     expect(task.messageClass).toEqual('IPM.Task')
     expect(task.hasAttachments).toBeTruthy()
-    const attachment: PSTAttachment = task.getAttachment(0)
+    const attachment: PSTAttachment = await (await task.attachmentCollection()).attachment(0)
     expect(attachment.size).toEqual(8447)
     expect(attachment.longFilename).toEqual('rickroll.jpg')
     expect(attachment.creationTime).toEqual(
@@ -76,20 +83,20 @@ describe('PSTAttachment tests', () => {
     expect(attachment.isAttachmentInvisibleInHtml).toEqual(false)
     expect(attachment.isAttachmentInvisibleInRTF).toEqual(false)
     expect(attachment.filesize).toEqual(4796)
-    expect(attachment.fileInputStream).not.toEqual(null)
     expect(attachment.embeddedPSTMessage).toEqual(null)
   })
 
-  it('should have email with word attachment', () => {
-    const childFolders = subtreeFolder.getSubFolders()
-    const folder = childFolders[1] // Inbox
-    let msg: PSTMessage = folder.getNextChild()
-    msg = folder.getNextChild()
-    msg = folder.getNextChild()
+  it('should have email with word attachment', async () => {
+    const childFolders = await subtreeFolder.folderCollection()
+    const folder = await childFolders.subFolder(1) // Inbox
+    const itemCollection = await folder.itemCollection()
+    let msg: PSTMessage = await itemCollection.item(0)
+    msg = await itemCollection.item(1)
+    msg = await itemCollection.item(2)
 
     // Email: 2110308 - word attachment
     expect(msg.hasAttachments).toBeTruthy()
-    const attachment: PSTAttachment = msg.getAttachment(0)
+    const attachment: PSTAttachment = (await (await msg.attachmentCollection()).attachment(0))
     expect(attachment.size).toEqual(54044)
     expect(attachment.longFilename).toEqual('OBA_2760.doc')
     expect(attachment.creationTime).toEqual(
@@ -97,17 +104,18 @@ describe('PSTAttachment tests', () => {
     )
   })
 
-  it('should have email with excel attachment', () => {
-    const childFolders = subtreeFolder.getSubFolders()
-    const folder = childFolders[1] // Inbox
-    let msg: PSTMessage = folder.getNextChild()
-    msg = folder.getNextChild()
-    msg = folder.getNextChild()
-    msg = folder.getNextChild()
+  it('should have email with excel attachment', async () => {
+    const childFolders = await subtreeFolder.folderCollection()
+    const folder = (await childFolders.subFolder(1)) // Inbox
+    const itemCollection = folder.itemCollection()
+    let msg: PSTMessage = (await (await itemCollection).item(0))
+    msg = (await (await itemCollection).item(1))
+    msg = (await (await itemCollection).item(2))
+    msg = (await (await itemCollection).item(3))
 
     // Email: 2110724 - excel attachment
     expect(msg.hasAttachments).toBeTruthy()
-    const attachment: PSTAttachment = msg.getAttachment(0)
+    const attachment: PSTAttachment = (await (await msg.attachmentCollection()).attachment(0))
     expect(attachment.size).toEqual(31016)
     expect(attachment.longFilename).toEqual('RedRockA.xls')
     expect(attachment.creationTime).toEqual(
@@ -115,18 +123,19 @@ describe('PSTAttachment tests', () => {
     )
   })
 
-  it('should have email with jpg attachment', () => {
-    const childFolders = subtreeFolder.getSubFolders()
-    const folder = childFolders[1] // Inbox
-    let msg: PSTMessage = folder.getNextChild()
-    msg = folder.getNextChild()
-    msg = folder.getNextChild()
-    msg = folder.getNextChild()
-    msg = folder.getNextChild()
+  it('should have email with jpg attachment',async () => {
+    const childFolders = (await subtreeFolder.folderCollection())
+    const folder = (await childFolders.subFolder(1)) // Inbox
+    const itemCollection = (await folder.itemCollection())
+    let msg: PSTMessage = (await itemCollection.item(0))
+    msg = (await itemCollection.item(1))
+    msg = (await itemCollection.item(2))
+    msg = (await itemCollection.item(3))
+    msg = (await itemCollection.item(4))
 
     // Email: 2111140 - never gonna give you up
     expect(msg.hasAttachments).toBeTruthy()
-    const attachment: PSTAttachment = msg.getAttachment(0)
+    const attachment: PSTAttachment = (await (await msg.attachmentCollection()).attachment(0))
     expect(attachment.size).toEqual(5020)
     expect(attachment.longFilename).toEqual('rickroll.jpg')
     expect(attachment.creationTime).toEqual(

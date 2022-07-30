@@ -5,6 +5,7 @@
 import { PHNodeHeap } from "./PHNodeHeap";
 import { PHNodeHeapReader } from "./PHNodeHeapReader";
 import { PLNodeReader } from "./PLNodeReader";
+import * as zlib from 'zlib'
 
 const USE_MAIN_DATA = -1;
 
@@ -17,9 +18,11 @@ export async function getHeapFromSub(node: PLNodeReader, subNodeId: number): Pro
 }
 
 async function getHeap(node: PLNodeReader, subNodeId: number): Promise<PHNodeHeap> {
-  const data_array = (subNodeId === USE_MAIN_DATA)
-    ? [await node.getMainData()]
-    : await node.getSubDataArray(subNodeId);
+  const data_array = await willUnzip2(
+    (subNodeId === USE_MAIN_DATA)
+      ? [await node.getMainData()]
+      : await node.getSubDataArray(subNodeId)
+  );
   const data_chunks = new Map<number, ArrayBuffer>();
   let bClientSig = 0;
   let userRootHnid = 0;
@@ -52,7 +55,7 @@ async function getHeap(node: PLNodeReader, subNodeId: number): Promise<PHNodeHea
             // this is HID (heap)
             const data = data_chunks.get(hnid);
             if (data === undefined) {
-              throw new Error("heap not found");
+              throw new Error(`heap 0x${hnid.toString(16)} not found`);
             }
             return [data];
           }
@@ -108,4 +111,38 @@ function load_page_header(
 
     data_chunks.set(0x20 * (1 + x) + 65536 * page_index, data.slice(from, to));
   }
+}
+
+export async function willUnzip2(array: ArrayBuffer[]): Promise<ArrayBuffer[]> {
+  if (array.length === 1) {
+    const data = array[0];
+    if (data.byteLength >= 4) {
+      array[0] = await willUnzip1(data);
+    }
+  }
+  return array;
+}
+
+export async function willUnzip1(data: ArrayBuffer): Promise<ArrayBuffer> {
+  if (data.byteLength >= 4) {
+    const view = new DataView(data);
+    if (view.getUint16(0, true) === 0x9c78) {
+      const buffer = await new Promise<Buffer>(
+        (resolve, reject) => zlib.unzip(
+          data,
+          (error, result) => {
+            if (error) {
+              reject(error);
+            }
+            else {
+              resolve(result);
+            }
+          }
+        )
+      );
+      return buffer.buffer;
+    }
+  }
+
+  return data;
 }

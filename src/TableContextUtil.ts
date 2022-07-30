@@ -1,5 +1,6 @@
 import { copyFile } from "fs";
 import { PHNodeHeap } from "./PHNodeHeap";
+import { splitPer } from "./PLMisc";
 import { Property } from "./Property";
 import { PropertyValueResolver } from "./PropertyValueResolver";
 import { RawProperty } from "./RawProperty";
@@ -7,15 +8,6 @@ import { TableContext } from "./TableContext";
 import { TableRow } from "./TableRow";
 
 const bTypeTC = 0x7c;
-
-function* splitPer(array: ArrayBuffer, per: number): Generator<ArrayBuffer> {
-  for (let offset = 0; offset < array.byteLength; offset += per) {
-    yield array.slice(
-      offset,
-      offset + per
-    );
-  }
-}
 
 function copy<T>(rows: T[]): T[] {
   return rows.map(

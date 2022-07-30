@@ -5,6 +5,7 @@
 import { PLNode } from "./PLNode";
 
 export interface PLStore {
-  getOneNodeBy(nodeId: number): PLNode;
+  getOneNodeBy(nodeId: number): PLNode | undefined;
+  getOneNodeByOrError(nodeId: number): PLNode;
   close(): void;
 }

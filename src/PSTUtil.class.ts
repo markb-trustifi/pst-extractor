@@ -8,10 +8,14 @@ import { PSTFile } from './PSTFile.class'
 import { PSTFolder } from './PSTFolder.class'
 import { PSTMessage } from './PSTMessage.class'
 import { PSTNodeInputStream } from './PSTNodeInputStream.class'
-import { PSTTableBC } from './PSTTableBC.class'
 import { PSTTask } from './PSTTask.class'
 import { PSTActivity } from './PSTActivity.class'
 import iconv from 'iconv-lite'
+import { PLNode } from './PLNode'
+import { getHeapFromMain } from './PHUtil'
+import { getPropertyContext } from './PropertyContextUtil'
+import { PropertyValueResolver } from './PropertyValueResolver'
+import { createPropertyFinder } from './PAUtil'
 
 /**
  * Utility functions for PST components
@@ -692,7 +696,7 @@ export class PSTUtil {
    * @returns {Buffer}
    * @memberof PSTUtil
    */
-   public static decodeArray(data: Uint8Array): Uint8Array {
+  public static decodeArray(data: Uint8Array): Uint8Array {
     let temp
     for (let x = 0; x < data.length; x++) {
       temp = data[x] & 0xff
@@ -700,69 +704,6 @@ export class PSTUtil {
     }
 
     return data
-  }
-
-  /**
-   * Detect and load a PST Object from a file with the specified descriptor index
-   * @static
-   * @param {PSTFile} theFile
-   * @param {long} descriptorIndex
-   * @returns {*}
-   * @memberof PSTUtil
-   */
-  public static detectAndLoadPSTObject(
-    theFile: PSTFile,
-    descriptorIndex: Long
-  ): any
-  public static detectAndLoadPSTObject(
-    theFile: PSTFile,
-    folderIndexNode: DescriptorIndexNode
-  ): any
-  public static detectAndLoadPSTObject(theFile: PSTFile, arg: any): any {
-    let folderIndexNode = arg
-    if (typeof arg === 'object' && arg.hasOwnProperty('low')) {
-      folderIndexNode = theFile.getDescriptorIndexNode(arg)
-    }
-
-    const nidType = folderIndexNode.descriptorIdentifier & 0x1f
-    if (nidType == 0x02 || nidType == 0x03 || nidType == 0x04) {
-      const table: PSTTableBC = new PSTTableBC(
-        new PSTNodeInputStream(
-          theFile,
-          theFile.getOffsetIndexNode(folderIndexNode.dataOffsetIndexIdentifier)
-        )
-      )
-
-      let localDescriptorItems:
-        | Map<number, PSTDescriptorItem>
-        | undefined = undefined
-      if (folderIndexNode.localDescriptorsOffsetIndexIdentifier != 0) {
-        localDescriptorItems = theFile.getPSTDescriptorItems(
-          folderIndexNode.localDescriptorsOffsetIndexIdentifier
-        )
-      }
-
-      if (nidType == 0x02 || nidType == 0x03) {
-        return new PSTFolder(
-          theFile,
-          folderIndexNode,
-          table,
-          localDescriptorItems
-        )
-      } else {
-        return this.createAppropriatePSTMessageObject(
-          theFile,
-          folderIndexNode,
-          table,
-          localDescriptorItems
-        )
-      }
-    } else {
-      throw new Error(
-        'PSTUtil::detectAndLoadPSTObject Unknown child type with offset id: ' +
-        folderIndexNode.localDescriptorsOffsetIndexIdentifier
-      )
-    }
   }
 
   /**
@@ -776,17 +717,27 @@ export class PSTUtil {
    * @returns {PSTMessage}
    * @memberof PSTUtil
    */
-  public static createAppropriatePSTMessageObject(
+  public static async createAppropriatePSTMessageObject(
     theFile: PSTFile,
-    folderIndexNode: DescriptorIndexNode,
-    table: PSTTableBC,
-    localDescriptorItems?: Map<number, PSTDescriptorItem>
-  ): PSTMessage {
-    const item = table.getItems().get(0x001a)
+    node: PLNode,
+    resolver: PropertyValueResolver
+  ): Promise<PSTMessage> {
+    const heap = await getHeapFromMain(
+      node.getNodeReader()
+    );
+    const pc = await getPropertyContext(
+      heap,
+      resolver
+    );
+    const propList = await pc.list();
+    const propertyFinder = createPropertyFinder(propList);
+
+    const item = propertyFinder.findByKey(0x001a);
     let messageClass = ''
-    if (item != null) {
-      messageClass = item.getStringValue()
+    if (item !== undefined && typeof item.value === 'string') {
+      messageClass = item.value
     }
+
     switch (messageClass) {
       case 'IPM.Note':
       case 'IPM.Note.SMIME.MultipartSigned':
@@ -794,15 +745,14 @@ export class PSTUtil {
         // email message
         const msg = new PSTMessage(
           theFile,
-          folderIndexNode,
-          table,
-          localDescriptorItems
-        )
+          node,
+          propertyFinder
+        );
         // Log.debug1(msg.body);
         // Log.debug1(msg.numberOfRecipients.toString());
         // Log.debug1(msg.colorCategories.toString());
         // Log.debug1(JSON.stringify(msg, null, 2));
-        return msg
+        return msg;
       case 'IPM.Appointment':
       case 'IPM.OLE.CLASS.{00061055-0000-0000-C000-000000000046}':
       case 'IPM.Schedule.Meeting.Canceled':
@@ -814,153 +764,143 @@ export class PSTUtil {
         // messageClass.startsWith('IPM.Schedule.Meeting')
         const apt = new PSTAppointment(
           theFile,
-          folderIndexNode,
-          table,
-          localDescriptorItems
-        )
+          node,
+          propertyFinder
+        );
         // Log.debug1(JSON.stringify(msg, null, 2));
-        return apt
+        return apt;
       case 'IPM.Contact':
         // contact
         const contact = new PSTContact(
           theFile,
-          folderIndexNode,
-          table,
-          localDescriptorItems
-        )
+          node,
+          propertyFinder
+        );
         // Log.debug1(JSON.stringify(msg, null, 2));
-        return contact
+        return contact;
       case 'IPM.Task':
         // task
         const task = new PSTTask(
           theFile,
-          folderIndexNode,
-          table,
-          localDescriptorItems
-        )
+          node,
+          propertyFinder
+        );
         // Log.debug1(JSON.stringify(msg, null, 2));
-        return task
+        return task;
       case 'IPM.Activity':
         // journal entry
         const activity = new PSTActivity(
           theFile,
-          folderIndexNode,
-          table,
-          localDescriptorItems
-        )
+          node,
+          propertyFinder
+        );
         // Log.debug1(JSON.stringify(msg, null, 2));
-        return activity
+        return activity;
       case 'IPM.Post.Rss':
         // debugger;
         // Rss Feed
         const rss = new PSTMessage(
           theFile,
-          folderIndexNode,
-          table,
-          localDescriptorItems
-        )
+          node,
+          propertyFinder
+        );
         // Log.debug1(JSON.stringify(msg, null, 2));
-        return rss
+        return rss;
       case 'IPM.DistList':
         // debugger;
         // Distribution list
         const dl = new PSTMessage(
           theFile,
-          folderIndexNode,
-          table,
-          localDescriptorItems
-        )
+          node,
+          propertyFinder
+        );
         // Log.debug1(JSON.stringify(msg, null, 2));
-        return dl
+        return dl;
       // return new PSTDistList(theFile, folderIndexNode, table, localDescriptorItems);
       case 'IPM.Note.Rules.OofTemplate.Microsoft':
         // debugger;
         // Out of Office rule
         const oof = new PSTMessage(
           theFile,
-          folderIndexNode,
-          table,
-          localDescriptorItems
-        )
+          node,
+          propertyFinder
+        );
         // Log.debug1(JSON.stringify(msg, null, 2));
-        return oof
+        return oof;
       case 'IPM.Schedule.Meeting.Request':
         // Meeting request
         const meetReq = new PSTMessage(
           theFile,
-          folderIndexNode,
-          table,
-          localDescriptorItems
-        )
+          node,
+          propertyFinder
+        );
         // Log.debug1(JSON.stringify(msg, null, 2));
-        return meetReq
+        return meetReq;
       case 'REPORT.IPM.Note.NDR':
         // Receipt of non-delivery
         const ndr = new PSTMessage(
           theFile,
-          folderIndexNode,
-          table,
-          localDescriptorItems
+          node,
+          propertyFinder
         )
         // Log.debug1(JSON.stringify(msg, null, 2));
-        return ndr
+        return ndr;
       case 'IPM.StickyNote':
         // Sticky note
         const sticky = new PSTMessage(
           theFile,
-          folderIndexNode,
-          table,
-          localDescriptorItems
+          node,
+          propertyFinder
         )
         // Log.debug1(JSON.stringify(msg, null, 2));
-        return sticky
+        return sticky;
       case 'REPORT.IPM.Note.IPNRN':
         // Read receipt
         // debugger;
         // console.log('PSTUtil::createAppropriatePSTMessageObject REPORT.IPM.Note.IPNRN');
         return new PSTMessage(
           theFile,
-          folderIndexNode,
-          table,
-          localDescriptorItems
-        )
+          node,
+          propertyFinder
+        );
       case 'REPORT.IPM.Note.IPNNRN':
         // Not-read notification
         // debugger;
         // console.log('PSTUtil::createAppropriatePSTMessageObject REPORT.IPM.Note.IPNNRN');
         return new PSTMessage(
           theFile,
-          folderIndexNode,
-          table,
-          localDescriptorItems
-        )
+          node,
+          propertyFinder
+        );
       case 'IPM.Schedule.Meeting.Request':
         // Meeting request
         // debugger;
         // console.log('PSTUtil::createAppropriatePSTMessageObject IPM.Schedule.Meeting.Request');
         return new PSTMessage(
           theFile,
-          folderIndexNode,
-          table,
-          localDescriptorItems
-        )
+          node,
+          propertyFinder
+        );
       case 'REPORT.IPM.Note.DR':
         // Delivery receipt
         // debugger;
         // console.log('PSTUtil::createAppropriatePSTMessageObject REPORT.IPM.Note.DR');
         return new PSTMessage(
           theFile,
-          folderIndexNode,
-          table,
-          localDescriptorItems
-        )
+          node,
+          propertyFinder
+        );
       default:
         console.error(
           'PSTUtil::createAppropriatePSTMessageObject unknown message type: ' +
           messageClass
         )
     }
-    return new PSTMessage(theFile, folderIndexNode, table, localDescriptorItems)
+    return new PSTMessage(
+      theFile,
+      node,
+      propertyFinder
+    );
   }
 
   /**

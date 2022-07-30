@@ -1,10 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { PSTFile } from './PSTFile.class'
-import { DescriptorIndexNode } from './DescriptorIndexNode.class'
-import { PSTTableBC } from './PSTTableBC.class'
-import { PSTDescriptorItem } from './PSTDescriptorItem.class'
 import { PSTMessage } from './PSTMessage.class'
 import { OutlookProperties } from './OutlookProperties'
+import { PLNode } from './PLNode'
+import { PropertyFinder } from './PAUtil'
 
 export class PSTActivity extends PSTMessage {
   /**
@@ -12,17 +11,15 @@ export class PSTActivity extends PSTMessage {
    * https://msdn.microsoft.com/en-us/library/office/aa204771(v=office.11).aspx
    * @param {PSTFile} pstFile
    * @param {DescriptorIndexNode} descriptorIndexNode
-   * @param {PSTTableBC} [table]
    * @param {Map<number, PSTDescriptorItem>} [localDescriptorItems]
    * @memberof PSTActivity
    */
   constructor(
     pstFile: PSTFile,
-    descriptorIndexNode: DescriptorIndexNode,
-    table?: PSTTableBC,
-    localDescriptorItems?: Map<number, PSTDescriptorItem>
+    node: PLNode,
+    propertyFinder: PropertyFinder
   ) {
-    super(pstFile, descriptorIndexNode, table, localDescriptorItems)
+    super(pstFile, node, propertyFinder);
   }
 
   /**

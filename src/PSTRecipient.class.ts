@@ -1,5 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { OutlookProperties } from './OutlookProperties'
+import { PropertyFinder } from './PAUtil';
+import { PLNode } from './PLNode';
 import { PSTFile } from './PSTFile.class'
 import { PSTObject } from './PSTObject.class'
 import { PSTTableItem } from './PSTTableItem.class'
@@ -11,8 +13,12 @@ export class PSTRecipient extends PSTObject {
    * @param {Map<number, PSTTableItem>} recipientDetails
    * @memberof PSTRecipient
    */
-  constructor(pstFile: PSTFile, recipientDetails: Map<number, PSTTableItem>) {
-    super(pstFile, undefined, recipientDetails)
+  constructor(
+    pstFile: PSTFile,
+    node: PLNode,
+    propertyFinder: PropertyFinder
+  ) {
+    super(pstFile, node, propertyFinder);
   }
 
   /**

@@ -1,14 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import Long from 'long'
-import { DescriptorIndexNode } from './DescriptorIndexNode.class'
 import { OutlookProperties } from './OutlookProperties'
-import { PSTDescriptorItem } from './PSTDescriptorItem.class'
+import { PropertyFinder } from './PAUtil'
+import { PLNode } from './PLNode'
 import { PSTFile } from './PSTFile.class'
 import { PSTMessage } from './PSTMessage.class'
-import { PSTNodeInputStream } from './PSTNodeInputStream.class'
 import { PSTObject } from './PSTObject.class'
-import { PSTTableBC } from './PSTTableBC.class'
-import { PSTUtil } from './PSTUtil.class'
 
 // Class containing attachment information.
 export class PSTAttachment extends PSTObject {
@@ -23,20 +19,15 @@ export class PSTAttachment extends PSTObject {
   /**
    * Creates an instance of PSTAttachment.
    * @param {PSTFile} pstFile
-   * @param {PSTTableBC} table
    * @param {Map<number, PSTDescriptorItem>} localDescriptorItems
    * @memberof PSTAttachment
    */
   constructor(
     pstFile: PSTFile,
-    table: PSTTableBC,
-    localDescriptorItems: Map<number, PSTDescriptorItem>,
-    descriptorIndexNode: DescriptorIndexNode | null
+    node: PLNode,
+    propertyFinder: PropertyFinder
   ) {
-    super(pstFile, descriptorIndexNode || undefined)
-
-    // pre-populate folder object with values
-    this.prePopulate(descriptorIndexNode, table, localDescriptorItems)
+    super(pstFile, node, propertyFinder);
   }
 
   /**
@@ -79,99 +70,31 @@ export class PSTAttachment extends PSTObject {
    * @memberof PSTAttachment
    */
   public get embeddedPSTMessage(): PSTMessage | null {
-    let pstNodeInputStream: PSTNodeInputStream | null = null
-    let localDescriptorItems: Map<number, PSTDescriptorItem> | null = this.localDescriptorItems
-    if (this.getIntItem(0x3705) == PSTAttachment.ATTACHMENT_METHOD_EMBEDDED) {
-      const item = this.pstTableItems ? this.pstTableItems.get(0x3701) : null
-      if (item && item.entryValueType == 0x0102) {
-        if (!item.isExternalValueReference) {
-          pstNodeInputStream = new PSTNodeInputStream(this.pstFile, item.data)
-        } else {
-          // We are in trouble!
-          throw new Error(
-            'PSTAttachment::getEmbeddedPSTMessage External reference in getEmbeddedPSTMessage()!'
-          )
-        }
-      } else if (item && item.entryValueType == 0x000d) {
-        const descriptorItem = PSTUtil.convertLittleEndianBytesToLong(
-          item.data,
-          0,
-          4
-        ).toNumber()
-        const descriptorItemNested = this.localDescriptorItems
-          ? this.localDescriptorItems.get(descriptorItem)
-          : null
-        if (descriptorItemNested) {
-          pstNodeInputStream = new PSTNodeInputStream(
-            this.pstFile,
-            descriptorItemNested
-          )
-          if (
-            descriptorItemNested &&
-            descriptorItemNested.subNodeOffsetIndexIdentifier > 0
-          ) {
-            localDescriptorItems = this.pstFile.getPSTDescriptorItems(
-              Long.fromNumber(descriptorItemNested.subNodeOffsetIndexIdentifier)
-            )
-          }
+    const attachMethod = this._propertyFinder.findByKey(0x3705)?.value;
+
+    try {
+      if (true
+        && typeof attachMethod === 'number'
+        && attachMethod == PSTAttachment.ATTACHMENT_METHOD_EMBEDDED
+      ) {
+        const attachDataBinary = this._propertyFinder.findByKey(0x3701)?.value;
+        if (true
+          && attachDataBinary instanceof ArrayBuffer
+        ) {
+          // PT_OBJECT or PT_BINARY
+          attachDataBinary;
+
+          throw new Error("how to operate attachDataBinary?");
         }
       }
-
-      if (!pstNodeInputStream) {
-        return null
-      }
-
-      try {
-        const attachmentTable: PSTTableBC = new PSTTableBC(pstNodeInputStream)
-        if (localDescriptorItems && this.descriptorIndexNode) {
-          return PSTUtil.createAppropriatePSTMessageObject(
-            this.pstFile,
-            this.descriptorIndexNode,
-            attachmentTable,
-            localDescriptorItems
-          )
-        }
-      } catch (err) {
-        console.error(
-          'PSTAttachment::embeddedPSTMessage createAppropriatePSTMessageObject failed\n' +
-            err
-        )
-        throw err
-      }
-    }
-    return null
-  }
-
-  /**
-   * The file input stream.
-   * https://msdn.microsoft.com/en-us/library/gg154634(v=winembedded.70).aspx
-   * @readonly
-   * @type {PSTNodeInputStream}
-   * @memberof PSTAttachment
-   */
-  public get fileInputStream(): PSTNodeInputStream | null {
-    const attachmentDataObject = this.pstTableItems
-      ? this.pstTableItems.get(OutlookProperties.PR_ATTACH_DATA_BIN)
-      : null
-    if (!attachmentDataObject) {
-      return null
-    } else if (attachmentDataObject.isExternalValueReference) {
-      const descriptorItemNested = this.localDescriptorItems
-        ? this.localDescriptorItems.get(
-            attachmentDataObject.entryValueReference
-          )
-        : null
-      if (descriptorItemNested) {
-        return new PSTNodeInputStream(this.pstFile, descriptorItemNested)
-      }
-    } else {
-      // internal value references are never encrypted
-      return new PSTNodeInputStream(
-        this.pstFile,
-        attachmentDataObject.data,
-        false
+    } catch (err) {
+      console.error(
+        'PSTAttachment::embeddedPSTMessage createAppropriatePSTMessageObject failed\n' +
+        err
       )
+      throw err
     }
+
     return null
   }
 
@@ -183,25 +106,14 @@ export class PSTAttachment extends PSTObject {
    * @memberof PSTAttachment
    */
   public get filesize(): number {
-    const attachmentDataObject = this.pstTableItems
-      ? this.pstTableItems.get(OutlookProperties.PR_ATTACH_DATA_BIN)
-      : null
-    if (attachmentDataObject && attachmentDataObject.isExternalValueReference) {
-      const descriptorItemNested = this.localDescriptorItems
-        ? this.localDescriptorItems.get(
-            attachmentDataObject.entryValueReference
-          )
-        : null
-      if (descriptorItemNested == null) {
-        throw new Error(
-          'PSTAttachment::filesize missing attachment descriptor item for: ' +
-            attachmentDataObject.entryValueReference
-        )
+    const attachmentDataObject = this._propertyFinder.findByKey(
+      OutlookProperties.PR_ATTACH_DATA_BIN
+    );
+    if (attachmentDataObject !== undefined) {
+      const { value } = attachmentDataObject;
+      if (value instanceof ArrayBuffer) {
+        return value.byteLength;
       }
-      return descriptorItemNested.dataSize
-    } else if (attachmentDataObject) {
-      // raw attachment data, right there!
-      return attachmentDataObject.data.length
     }
     return 0
   }

@@ -4,15 +4,33 @@ import { getPropertyContext } from '../PropertyContextUtil';
 import { getTableContext } from '../TableContextUtil';
 import { PropertyValueResolverV1 } from '../PropertyValueResolverV1';
 import { processNameToIDMap } from '../PAUtil';
+import { openPstFile, PSTFolder } from '../index';
 import { decode } from 'iconv-lite';
 import fs from 'fs';
 const resolve = require('path').resolve;
 
 // cls & yarn test:unit --testMatch "**/PLUtil.spec.ts" --coverage false
 
-const filePath = resolve('./src/__tests__/testdata/alpha-beta-gamma-delta.pst');
+const filePath = resolve('./src/__tests__/testdata/mtnman1965@outlook.com.ost');
 
 describe('PLUtil/PHUtil tests', () => {
+  it('openPstFile', async () => {
+    const pst = await openPstFile(filePath);
+
+    async function walk(folder: PSTFolder, depth: number): Promise<void> {
+      for (let item of (await (await folder.itemCollection()).items())) {
+        //console.log("  ".repeat(depth) + `- ${item.displayName}`);
+      }
+      for (let subFolder of (await (await folder.folderCollection()).subFolders())) {
+        //console.log("  ".repeat(depth) + `- ${subFolder.displayName}`);
+        await walk(subFolder, depth + 1);
+      }
+    }
+
+    await walk(await pst.getRootFolder(), 0);
+
+    await pst.close();
+  });
   it('openLowPst and so on', async () => {
     const file = await fs.promises.open(filePath, "r");
     try {
@@ -24,7 +42,7 @@ describe('PLUtil/PHUtil tests', () => {
         return bytesRead;
       }
 
-      const lowPst = await openLowPst({ readFile, close: () => { } });
+      const lowPst = await openLowPst({ readFile, close: async () => { } });
 
       const resolver = new PropertyValueResolverV1(
         async (array) => decode(Buffer.from(array), "cp932")
@@ -32,14 +50,14 @@ describe('PLUtil/PHUtil tests', () => {
 
       {
         const nodeMap = await processNameToIDMap(
-          await lowPst.getOneNodeBy(97),
+          await lowPst.getOneNodeByOrError(97),
           resolver
         );
 
-        console.log(nodeMap);
+        //console.log(nodeMap);
       }
 
-      const rootNode = await lowPst.getOneNodeBy(290);
+      const rootNode = await lowPst.getOneNodeByOrError(290);
 
       const heap = await getHeapFromMain(rootNode.getNodeReader());
       const pcBufs = await heap.getReader().getHeapBuffers(heap.userRootHnid);
@@ -51,7 +69,7 @@ describe('PLUtil/PHUtil tests', () => {
       );
 
       {
-        const nameToIdMapDescriptorNode = await lowPst.getOneNodeBy(97);
+        const nameToIdMapDescriptorNode = await lowPst.getOneNodeByOrError(97);
         //console.log({ nameToIdMapDescriptorNode });
         const nameToIdMapHeap = await getHeapFromMain(nameToIdMapDescriptorNode.getNodeReader());
         //console.log({ nameToIdMap });
@@ -62,19 +80,19 @@ describe('PLUtil/PHUtil tests', () => {
         //console.log(await more.list());
       }
 
-      {
-        const alphaNode = await lowPst.getOneNodeBy(2097188);
-        const alphaHeap = await getHeapFromSub(alphaNode.getNodeReader(), 0x671);
-        const alphaMore = await getTableContext(
-          alphaHeap,
-          resolver
-        );
-        //console.log(await (await alphaMore.rows())[0].list());
-      }
+      // {
+      //   const alphaNode = await lowPst.getOneNodeByOrError(2097188);
+      //   const alphaHeap = await getHeapFromSub(alphaNode.getNodeReader(), 0x671);
+      //   const alphaMore = await getTableContext(
+      //     alphaHeap,
+      //     resolver
+      //   );
+      //   //console.log(await (await alphaMore.rows())[0].list());
+      // }
 
       //console.log(await pc.list());
     } finally {
-      file.close();
+      await file.close();
     }
   })
 })

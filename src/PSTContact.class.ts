@@ -1,19 +1,17 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { DescriptorIndexNode } from './DescriptorIndexNode.class'
 import { OutlookProperties } from './OutlookProperties'
-import { PSTDescriptorItem } from './PSTDescriptorItem.class'
+import { PropertyFinder } from './PAUtil'
+import { PLNode } from './PLNode'
 import { PSTFile } from './PSTFile.class'
 import { PSTMessage } from './PSTMessage.class'
-import { PSTTableBC } from './PSTTableBC.class'
 
 export class PSTContact extends PSTMessage {
   constructor(
     pstFile: PSTFile,
-    descriptorIndexNode: DescriptorIndexNode,
-    table?: PSTTableBC,
-    localDescriptorItems?: Map<number, PSTDescriptorItem>
+    node: PLNode,
+    propertyFinder: PropertyFinder
   ) {
-    super(pstFile, descriptorIndexNode, table, localDescriptorItems)
+    super(pstFile, node, propertyFinder);
   }
 
   /**

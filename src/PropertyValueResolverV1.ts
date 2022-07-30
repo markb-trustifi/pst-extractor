@@ -1,5 +1,7 @@
 import Long from "long";
 import { PHNodeHeapReader } from "./PHNodeHeapReader";
+import { willUnzip2 } from "./PHUtil";
+import { splitPer } from "./PLMisc";
 import { readLong } from "./PLUtil";
 import { PropertyValueResolver } from "./PropertyValueResolver";
 import { PSTUtil } from "./PSTUtil.class";
@@ -18,7 +20,7 @@ type PrimitiveTypeConverter = (
 
 type PrimitiveTypeConverters = { [key: number]: PrimitiveTypeConverter };
 
-const primitiveTypeConverters: PrimitiveTypeConverters = {};
+const typeConverters: PrimitiveTypeConverters = {};
 
 const PT_BOOLEAN = 0xB;
 const PT_DOUBLE = 0x5;
@@ -29,16 +31,25 @@ const PT_STRING8 = 0x1E;
 const PT_UNICODE = 0x1F;
 const PT_SYSTIME = 0x40;
 const PT_CLSID = 0x48;
+const PT_SHORT = 0x2;
 
-primitiveTypeConverters[PT_LONG] = async (arg) => {
+const PT_MV_UNICODE = 0x101F;
+const PT_MV_BINARY = 0x1102;
+const PT_MV_LONG = 0x1003;
+const PT_MV_CLSID = 0x1048;
+
+typeConverters[PT_SHORT] = async (arg) => {
+  return arg.view.getInt16(0, true);
+};
+typeConverters[PT_LONG] = async (arg) => {
   return arg.view.getInt32(0, true);
 };
-primitiveTypeConverters[PT_OBJECT] = async (arg) => {
+typeConverters[PT_OBJECT] = async (arg) => {
   const heap = arg.view.getUint32(0, true);
   const bytes = await arg.resolveHeap(heap);
   return bytes;
 };
-primitiveTypeConverters[PT_LONGLONG] = async (arg) => {
+typeConverters[PT_LONGLONG] = async (arg) => {
   const bytes = await arg.getBytes(8);
   if (bytes !== undefined) {
     const view = new DataView(bytes);
@@ -48,30 +59,30 @@ primitiveTypeConverters[PT_LONGLONG] = async (arg) => {
     return undefined;
   }
 };
-primitiveTypeConverters[PT_DOUBLE] = async (arg) => {
+typeConverters[PT_DOUBLE] = async (arg) => {
   const bytes = await arg.getBytes(8);
   return (bytes !== undefined)
     ? new DataView(bytes).getFloat64(0, true)
     : undefined;
 };
-primitiveTypeConverters[PT_BOOLEAN] = async (arg) => {
+typeConverters[PT_BOOLEAN] = async (arg) => {
   return arg.view.getUint8(0) !== 0;
 };
-primitiveTypeConverters[PT_STRING8] = async (arg) => {
+typeConverters[PT_STRING8] = async (arg) => {
   const heap = arg.view.getUint32(0, true);
   const bytes = await arg.resolveHeap(heap);
   return (bytes !== undefined)
     ? await arg.convertAnsiString(bytes)
     : undefined;
 };
-primitiveTypeConverters[PT_UNICODE] = async (arg) => {
+typeConverters[PT_UNICODE] = async (arg) => {
   const heap = arg.view.getUint32(0, true);
   const bytes = await arg.resolveHeap(heap);
   return (bytes !== undefined)
     ? Buffer.from(bytes).toString('utf16le')
     : undefined;
 };
-primitiveTypeConverters[PT_SYSTIME] = async (arg) => {
+typeConverters[PT_SYSTIME] = async (arg) => {
   const bytes = await arg.getBytes(8);
   if (bytes !== undefined) {
     const view = new DataView(bytes);
@@ -84,16 +95,85 @@ primitiveTypeConverters[PT_SYSTIME] = async (arg) => {
     return undefined;
   }
 };
-primitiveTypeConverters[PT_CLSID] = async (arg) => {
+typeConverters[PT_CLSID] = async (arg) => {
   const heap = arg.view.getUint32(0, true);
   const bytes = await arg.resolveHeap(heap);
   return bytes;
 };
-primitiveTypeConverters[0x0102] = async (arg) => {
+typeConverters[0x0102] = async (arg) => {
   const heap = arg.view.getUint32(0, true);
   const bytes = await arg.resolveHeap(heap);
   return bytes;
 };
+typeConverters[PT_MV_UNICODE] = async (arg) => {
+  const heap = arg.view.getUint32(0, true);
+  const bytes = await arg.resolveHeap(heap);
+  const list = [] as any[];
+  if (bytes !== undefined) {
+    const view = new DataView(bytes);
+    const count = view.getUint32(0, true);
+    for (let x = 0; x < count - 1; x++) {
+      const from = view.getUint32(4 + 4 * (x), true);
+      const to = view.getUint32(4 + 4 * (x + 1), true);
+
+      const elementBytes = bytes.slice(from, to);
+
+      list.push(
+        Buffer.from(elementBytes).toString('utf16le')
+      )
+    }
+  }
+  return list;
+};
+typeConverters[PT_MV_BINARY] = async (arg) => {
+  const heap = arg.view.getUint32(0, true);
+  const bytes = await arg.resolveHeap(heap);
+  const list = [] as any[];
+  if (bytes !== undefined) {
+    const view = new DataView(bytes);
+    const count = view.getUint32(0, true);
+    for (let x = 0; x < count - 1; x++) {
+      const from = view.getUint32(4 + 4 * (x), true);
+      const to = view.getUint32(4 + 4 * (x + 1), true);
+
+      const elementBytes = bytes.slice(from, to);
+
+      list.push(elementBytes)
+    }
+  }
+  return list;
+};
+typeConverters[PT_MV_LONG] = async (arg) => {
+  const heap = arg.view.getUint32(0, true);
+  const bytes = await arg.resolveHeap(heap);
+  const list = [] as any[];
+  if (bytes !== undefined) {
+    const view = new DataView(bytes);
+    const count = bytes.byteLength / 4;
+    for (let x = 0; x < count; x++) {
+      list.push(view.getInt32(4 * x, true))
+    }
+  }
+  return list;
+};
+typeConverters[PT_MV_CLSID] = async (arg) => {
+  const heap = arg.view.getUint32(0, true);
+  const bytes = await arg.resolveHeap(heap);
+  const list = [] as any[];
+  if (bytes !== undefined) {
+    const count = bytes.byteLength / 16;
+    for (let x = 0; x < count; x++) {
+      const from = 16 * (x);
+      const to = 16 * (x + 1);
+
+      const elementBytes = bytes.slice(from, to);
+
+      list.push(elementBytes)
+    }
+  }
+  return list;
+};
+
 
 function mixIntoOne(array: ArrayBuffer[]): ArrayBuffer {
   if (array.length === 0) {
@@ -132,15 +212,19 @@ export class PropertyValueResolverV1 implements PropertyValueResolver {
     value: ArrayBuffer,
     heap: PHNodeHeapReader
   ): Promise<any> {
-    const converter = primitiveTypeConverters[type];
-    if (converter === undefined) {
-      throw new Error(`property type ${type} is unknown`);
-    }
-
     const view = new DataView(value);
 
     async function resolveHeap(hnid: number): Promise<ArrayBuffer | undefined> {
-      return mixIntoOne(await heap.getHeapBuffers(hnid));
+      return mixIntoOne(
+        await willUnzip2(
+          await heap.getHeapBuffers(hnid)
+        )
+      );
+    }
+
+    const converter = typeConverters[type];
+    if (converter === undefined) {
+      throw new Error(`property type 0x${type.toString(16)} is unknown`);
     }
 
     return await converter(
