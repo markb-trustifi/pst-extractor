@@ -686,6 +686,23 @@ export class PSTUtil {
   }
 
   /**
+   * Decode a lump of data that has been encrypted with the compressible encryption
+   * @static
+   * @param {Buffer} data
+   * @returns {Buffer}
+   * @memberof PSTUtil
+   */
+   public static decodeArray(data: Uint8Array): Uint8Array {
+    let temp
+    for (let x = 0; x < data.length; x++) {
+      temp = data[x] & 0xff
+      data[x] = this.compEnc[temp]
+    }
+
+    return data
+  }
+
+  /**
    * Detect and load a PST Object from a file with the specified descriptor index
    * @static
    * @param {PSTFile} theFile
