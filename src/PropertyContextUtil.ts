@@ -19,9 +19,9 @@ export async function getPropertyContext(
     throw new Error("must be bTypePC");
   }
 
-  const { getHeapBuffers } = heap.getReader();
+  const reader = heap.getReader();
 
-  const header_data_array = await getHeapBuffers(heap.userRootHnid);
+  const header_data_array = await reader.getHeapBuffers(heap.userRootHnid);
   if (header_data_array.length !== 1) {
     throw new Error("must be single");
   }
@@ -54,7 +54,7 @@ export async function getPropertyContext(
 
   const next = headerView.getUint32(4, true);
 
-  const index_data_array = await getHeapBuffers(next);
+  const index_data_array = await reader.getHeapBuffers(next);
   if (index_data_array.length !== 1) {
     throw new Error("must be single");
   }
@@ -72,8 +72,6 @@ export async function getPropertyContext(
       value: index_data.slice(top + 4, top + 4 + 4),
     });
   }
-
-  const reader = heap.getReader();
 
   return {
     async listRaw(): Promise<RawProperty[]> {

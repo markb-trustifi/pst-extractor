@@ -1,6 +1,7 @@
 import { openLowPst } from '../PLUtil';
 import { getHeapFromMain, getHeapFromSub } from '../PHUtil';
 import { getPropertyContext } from '../PropertyContextUtil';
+import { getTableContext } from '../TableContextUtil';
 import { PropertyValueResolverV1 } from '../PropertyValueResolverV1';
 import { decode } from 'iconv-lite';
 import fs from 'fs';
@@ -28,16 +29,28 @@ describe('PLUtil/PHUtil tests', () => {
 
       const heap = await getHeapFromMain(rootNode.getNodeReader());
       const pcBufs = await heap.getReader().getHeapBuffers(heap.userRootHnid);
-      console.log({ pcBufs });
+      //console.log({ pcBufs });
+
+      const resolver = new PropertyValueResolverV1(
+        async (array) => decode(Buffer.from(array), "cp932")
+      );
 
       const pc = await getPropertyContext(
         heap,
-        new PropertyValueResolverV1(
-          async (array) => decode(Buffer.from(array), "cp932")
-        )
+        resolver
       );
 
-      console.log(await pc.list());
+      {
+        const alphaNode = await lowPst.getOneNodeBy(2097188);
+        const alphaHeap = await getHeapFromSub(alphaNode.getNodeReader(), 0x671);
+        const alphaMore = await getTableContext(
+          alphaHeap,
+          resolver
+        );
+        console.log(await (await alphaMore.rows())[0].list());
+      }
+
+      //console.log(await pc.list());
     } finally {
       file.close();
     }
