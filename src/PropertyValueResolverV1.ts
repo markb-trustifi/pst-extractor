@@ -107,68 +107,76 @@ typeConverters[0x0102] = async (arg) => {
 };
 typeConverters[PT_MV_UNICODE] = async (arg) => {
   const heap = arg.view.getUint32(0, true);
-  const bytes = await arg.resolveHeap(heap);
   const list = [] as any[];
-  if (bytes !== undefined) {
-    const view = new DataView(bytes);
-    const count = view.getUint32(0, true);
-    for (let x = 0; x < count - 1; x++) {
-      const from = view.getUint32(4 + 4 * (x), true);
-      const to = view.getUint32(4 + 4 * (x + 1), true);
+  if (heap !== 0) {
+    const bytes = await arg.resolveHeap(heap);
+    if (bytes !== undefined) {
+      const view = new DataView(bytes);
+      const count = view.getUint32(0, true);
+      for (let x = 0; x < count - 1; x++) {
+        const from = view.getUint32(4 + 4 * (x), true);
+        const to = view.getUint32(4 + 4 * (x + 1), true);
 
-      const elementBytes = bytes.slice(from, to);
+        const elementBytes = bytes.slice(from, to);
 
-      list.push(
-        Buffer.from(elementBytes).toString('utf16le')
-      )
+        list.push(
+          Buffer.from(elementBytes).toString('utf16le')
+        )
+      }
     }
   }
   return list;
 };
 typeConverters[PT_MV_BINARY] = async (arg) => {
   const heap = arg.view.getUint32(0, true);
-  const bytes = await arg.resolveHeap(heap);
   const list = [] as any[];
-  if (bytes !== undefined) {
-    const view = new DataView(bytes);
-    const count = view.getUint32(0, true);
-    for (let x = 0; x < count - 1; x++) {
-      const from = view.getUint32(4 + 4 * (x), true);
-      const to = view.getUint32(4 + 4 * (x + 1), true);
+  if (heap !== 0) {
+    const bytes = await arg.resolveHeap(heap);
+    if (bytes !== undefined) {
+      const view = new DataView(bytes);
+      const count = view.getUint32(0, true);
+      for (let x = 0; x < count - 1; x++) {
+        const from = view.getUint32(4 + 4 * (x), true);
+        const to = view.getUint32(4 + 4 * (x + 1), true);
 
-      const elementBytes = bytes.slice(from, to);
+        const elementBytes = bytes.slice(from, to);
 
-      list.push(elementBytes)
+        list.push(elementBytes)
+      }
     }
   }
   return list;
 };
 typeConverters[PT_MV_LONG] = async (arg) => {
   const heap = arg.view.getUint32(0, true);
-  const bytes = await arg.resolveHeap(heap);
   const list = [] as any[];
-  if (bytes !== undefined) {
-    const view = new DataView(bytes);
-    const count = bytes.byteLength / 4;
-    for (let x = 0; x < count; x++) {
-      list.push(view.getInt32(4 * x, true))
+  if (heap !== 0) {
+    const bytes = await arg.resolveHeap(heap);
+    if (bytes !== undefined) {
+      const view = new DataView(bytes);
+      const count = bytes.byteLength / 4;
+      for (let x = 0; x < count; x++) {
+        list.push(view.getInt32(4 * x, true))
+      }
     }
   }
   return list;
 };
 typeConverters[PT_MV_CLSID] = async (arg) => {
   const heap = arg.view.getUint32(0, true);
-  const bytes = await arg.resolveHeap(heap);
   const list = [] as any[];
-  if (bytes !== undefined) {
-    const count = bytes.byteLength / 16;
-    for (let x = 0; x < count; x++) {
-      const from = 16 * (x);
-      const to = 16 * (x + 1);
+  if (heap !== 0) {
+    const bytes = await arg.resolveHeap(heap);
+    if (bytes !== undefined) {
+      const count = bytes.byteLength / 16;
+      for (let x = 0; x < count; x++) {
+        const from = 16 * (x);
+        const to = 16 * (x + 1);
 
-      const elementBytes = bytes.slice(from, to);
+        const elementBytes = bytes.slice(from, to);
 
-      list.push(elementBytes)
+        list.push(elementBytes)
+      }
     }
   }
   return list;

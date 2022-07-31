@@ -511,7 +511,7 @@ export async function openLowPst(api: ReadFileApi): Promise<PLStore> {
 
     const ptr = nodeMap.get(nodeId);
     if (ptr === undefined) {
-      throw new Error(`node ${nodeId} not found`);
+      return undefined;
     }
 
     const { blockId, subBlockId } = ptr;
@@ -575,7 +575,9 @@ export async function openLowPst(api: ReadFileApi): Promise<PLStore> {
         getMainData,
         getSubDataArray,
         numSubDataArray,
+        toString: () => `nodeId=${nodeId},nidType=${nodeId & 0x1f}`,
       } as PLNodeReader),
+      getSiblingNode: (nidType: number) => getOneNodeBy((nodeId & ~0x1f) | (nidType & 0x1f)),
     } as PLNode;
   };
 

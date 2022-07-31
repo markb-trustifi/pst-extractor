@@ -9,10 +9,12 @@ import { PSTTableItem } from './PSTTableItem.class'
 import { PSTObject } from './PSTObject.class'
 import { PSTUtil } from './PSTUtil.class'
 import { PLNode } from './PLNode'
-import { PropertyFinder } from './PAUtil'
+import { createPropertyFinder, PropertyFinder } from './PAUtil'
 import { PSTFolderCollection } from './PSTFolderCollection'
 import { PSTItemCollection } from './PSTItemCollection'
 import { PSTMessage } from './PSTMessage.class'
+import { getTableContext } from './TableContextUtil'
+import { getHeapFromMain, getHeapFromSub } from './PHUtil'
 
 /**
  * Represents a folder in the PST File.  Allows you to access child folders or items.
@@ -47,7 +49,7 @@ export class PSTFolder extends PSTObject {
   async folderCollection(): Promise<PSTFolderCollection> {
     try {
       const targets: PLNode[] = [];
-      
+
       for (let node of this._node.getChildren()) {
         const nodeType = this.getNodeType(node.nodeId);
         if (false
@@ -84,9 +86,41 @@ export class PSTFolder extends PSTObject {
       // some folder types don't have children:
     }
     else {
-      for (let node of this._node.getChildren()) {
-        if (this.getNodeType(node.nodeId) === PSTUtil.NID_TYPE_NORMAL_MESSAGE) {
-          targets.push(node);
+      // trying to read emailsTable PSTTable7C
+      const contentsTableNode = this._node.getSiblingNode(PSTUtil.NID_TYPE_CONTENTS_TABLE);
+
+      if (contentsTableNode !== undefined) {
+        const contentsTableNodeReader = contentsTableNode.getNodeReader();
+        const heap = await getHeapFromMain(
+          contentsTableNodeReader
+        );
+
+        const tc = await getTableContext(
+          heap,
+          this.pstFile.resolver
+        );
+
+        const rows = await tc.rows();
+
+        const orderOfNodeId = [];
+
+        for (let row of rows) {
+          const props = createPropertyFinder(await row.list());
+          const prop = props.findByKey(0x67f2);
+          if (prop !== undefined && typeof prop.value === 'number') {
+            orderOfNodeId.push(prop.value);
+          }
+        }
+
+        console.log(heap + "", orderOfNodeId);
+      }
+      else {
+        //console.log("fallback");
+        // fallback to children as listed in the descriptor b-tree
+        for (let node of this._node.getChildren()) {
+          if (this.getNodeType(node.nodeId) === PSTUtil.NID_TYPE_NORMAL_MESSAGE) {
+            targets.push(node);
+          }
         }
       }
     }

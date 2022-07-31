@@ -32,6 +32,7 @@ describe('PSTAttachment tests', () => {
   it('should have a contact with an attachment', async () => {
     const childFolders = await subtreeFolder.folderCollection()
     const folder = await childFolders.subFolder(10) // Contacts
+    expect(folder.displayName).toBe("Contacts");
     const itemCollection = await folder.itemCollection()
     const contact: PSTContact = await itemCollection.item(0) as PSTContact
     expect(contact.messageClass).toEqual('IPM.Contact')
@@ -58,6 +59,7 @@ describe('PSTAttachment tests', () => {
   it('should have a task with an attachment', async () => {
     const childFolders = await subtreeFolder.folderCollection()
     const folder = await childFolders.subFolder(17) // Tasks
+    expect(folder.displayName).toBe('Tasks');
     const itemCollection = await folder.itemCollection()
     const task: PSTTask = (await itemCollection.item(0)) as PSTTask
     expect(task.messageClass).toEqual('IPM.Task')

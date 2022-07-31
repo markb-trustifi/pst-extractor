@@ -9,4 +9,6 @@ export interface PLNode {
   getParent(): PLNode | undefined;
   getChildren(): PLNode[];
   getNodeReader(): PLNodeReader;
+
+  getSiblingNode(nidType: number): PLNode | undefined;
 }

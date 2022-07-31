@@ -40,6 +40,10 @@ async function getHeap(node: PLNodeReader, subNodeId: number): Promise<PHNodeHea
     bClientSig,
     userRootHnid,
 
+    toString() {
+      return `subNodeId=${subNodeId} of ${node}`;
+    },
+
     getReader() {
       return {
         async getHeapBuffers(hnid): Promise<ArrayBuffer[]> {
@@ -48,7 +52,7 @@ async function getHeap(node: PLNodeReader, subNodeId: number): Promise<PHNodeHea
           }
           else if (hnid & 0x1f) {
             // this is NID (node)
-            const data_array = await node.getSubDataArray(hnid);
+            const data_array = await willUnzip2(await node.getSubDataArray(hnid));
             return data_array;
           }
           else {

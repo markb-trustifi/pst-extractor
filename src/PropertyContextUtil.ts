@@ -80,13 +80,23 @@ export async function getPropertyContext(
     async list(): Promise<Property[]> {
       const props = [];
       for (let it of rawProperties) {
-        props.push(
-          {
-            key: it.key,
-            type: it.type,
-            value: await resolver.resolveValueOf(it.key, it.type, it.value, reader),
-          } as Property
-        );
+        try {
+          props.push(
+            {
+              key: it.key,
+              type: it.type,
+              value: await resolver.resolveValueOf(it.key, it.type, it.value, reader),
+            } as Property
+          );
+        }
+        catch (ex) {
+          throw new Error(`getPropertyContext.list() resolving property`
+            + ` key=0x${it.key.toString(16).padStart(4, '0')}`
+            + ` type=0x${it.type.toString(16).padStart(4, '0')}`
+            + ` of ${heap} failure`
+            + ` --> ${ex}`
+          );
+        }
       }
       return props;
     },

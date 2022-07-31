@@ -94,10 +94,17 @@ export async function getTableContext(
     const page_index = (record_index / rows_per_page) | 0;
     const heap_index = (record_index % rows_per_page) | 0;
 
-    return rows_pages[page_index].slice(rec_size * heap_index, rec_size);
+    const record = rows_pages[page_index].slice(
+      rec_size * (heap_index + 0),
+      rec_size * (heap_index + 1)
+    );
+    if (record.byteLength !== rec_size) {
+      throw new Error(`get_record(${record_index}) (${rows_pages.map(it => it.byteLength).join(",")}) ${record.byteLength} < ${rec_size} EOS`);
+    }
+    return record;
   }
 
-  const count = rows_pages.reduce((accum, it) => accum + it.byteLength / rec_size, 0);
+  const count = rows_pages.reduce((accum, it) => (accum + it.byteLength / rec_size) | 0, 0);
 
   async function listRaw(record: number): Promise<RawProperty[]> {
     const rowData = get_record(record);
@@ -116,16 +123,26 @@ export async function getTableContext(
     const rawProps = await listRaw(record);
     const list: Property[] = [];
     for (let rawProp of rawProps) {
-      list.push({
-        key: rawProp.key,
-        type: rawProp.type,
-        value: await resolver.resolveValueOf(
-          rawProp.key,
-          rawProp.type,
-          rawProp.value,
-          reader
-        )
-      });
+      try {
+        list.push({
+          key: rawProp.key,
+          type: rawProp.type,
+          value: await resolver.resolveValueOf(
+            rawProp.key,
+            rawProp.type,
+            rawProp.value,
+            reader
+          )
+        });
+      }
+      catch (ex) {
+        throw new Error(`getTableContext.list(rowIndex=${record}) resolving property`
+          + ` key=0x${rawProp.key.toString(16).padStart(4, '0')}`
+          + ` type=0x${rawProp.type.toString(16).padStart(4, '0')}`
+          + ` of ${heap} failure`
+          + ` --> ${ex}`
+        );
+      }
     }
     return list;
   }

@@ -18,6 +18,7 @@ import { getHeapFromSub } from './PHUtil'
 import { getTableContext } from './TableContextUtil'
 import { KeyedDelay } from './KeyedDelay'
 import { PSTRecipientCollection } from './PSTRecipientCollection'
+import { getPropertyContext } from './PropertyContextUtil'
 
 enum PidTagMessageFlags {
   MSGFLAG_READ = 0x01,
@@ -411,11 +412,38 @@ export class PSTMessage extends PSTObject {
             if (!(index in rows)) {
               throw new RangeError(`attachment index ${index} out of range`);
             }
-            const propertyFinder = createPropertyFinder(await rows[index].list());
+
+            // xxx1 is for properties in one row in TableContext.
+            const list1 = await rows[index].list();
+            const propertyFinder1 = createPropertyFinder(list1);
+
+            const ltpRowId = propertyFinder1.findByKey(0x67f2);
+            if (ltpRowId === undefined) {
+              throw new Error("ltpRowId not found");
+            }
+            if (typeof ltpRowId.value !== 'number') {
+              throw new Error("ltpRowId invalid type");
+            }
+
+            // xxx2 is for properties in PropertyContext in dedicated subData
+            const heap2 = await getHeapFromSub(
+              reader,
+              ltpRowId.value
+            );
+
+            const pc2 = await getPropertyContext(
+              heap2,
+              this.pstFile.resolver
+            );
+
+            const propertyFinder2 = createPropertyFinder(
+              await pc2.list()
+            );
+
             return new PSTAttachment(
               this.pstFile,
               this._node,
-              propertyFinder
+              propertyFinder2
             );
           }
         );
