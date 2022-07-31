@@ -131,7 +131,7 @@ export async function willUnzip1(data: ArrayBuffer): Promise<ArrayBuffer> {
   if (data.byteLength >= 4) {
     const view = new DataView(data);
     if (view.getUint16(0, true) === 0x9c78) {
-      const buffer = await new Promise<Buffer>(
+      const arrayBuffer = await new Promise<ArrayBuffer>(
         (resolve, reject) => zlib.unzip(
           data,
           (error, result) => {
@@ -139,12 +139,17 @@ export async function willUnzip1(data: ArrayBuffer): Promise<ArrayBuffer> {
               reject(error);
             }
             else {
-              resolve(result);
+              resolve(
+                result.buffer.slice(
+                  result.byteOffset,
+                  result.byteLength
+                )
+              );
             }
           }
         )
       );
-      return buffer.buffer;
+      return arrayBuffer;
     }
   }
 

@@ -32,6 +32,7 @@ const PT_UNICODE = 0x1F;
 const PT_SYSTIME = 0x40;
 const PT_CLSID = 0x48;
 const PT_SHORT = 0x2;
+const PT_FLOAT = 0x4;
 
 const PT_MV_UNICODE = 0x101F;
 const PT_MV_BINARY = 0x1102;
@@ -40,6 +41,9 @@ const PT_MV_CLSID = 0x1048;
 
 typeConverters[PT_SHORT] = async (arg) => {
   return arg.view.getInt16(0, true);
+};
+typeConverters[PT_FLOAT] = async (arg) => {
+  return arg.view.getFloat32(0, true);
 };
 typeConverters[PT_LONG] = async (arg) => {
   return arg.view.getInt32(0, true);

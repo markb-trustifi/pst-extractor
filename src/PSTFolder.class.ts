@@ -112,7 +112,17 @@ export class PSTFolder extends PSTObject {
           }
         }
 
-        console.log(heap + "", orderOfNodeId);
+        const childNodeIdMap = new Map(
+          this._node.getChildren()
+            .map(node => [node.nodeId, node])
+        );
+
+        for (let nodeId of orderOfNodeId) {
+          const found = childNodeIdMap.get(nodeId);
+          if (found !== undefined) {
+            targets.push(found);
+          }
+        }
       }
       else {
         //console.log("fallback");
