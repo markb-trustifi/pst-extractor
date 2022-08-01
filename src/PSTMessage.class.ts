@@ -445,7 +445,7 @@ export class PSTMessage extends PSTObject {
             return new PSTAttachment(
               this.pstFile,
               this._node,
-              this._subNode,
+              child2,
               propertyFinder2
             );
           }

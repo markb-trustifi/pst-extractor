@@ -2,6 +2,7 @@ import Long from "long";
 import { PHNodeHeapReader } from "./PHNodeHeapReader";
 import { splitPer } from "./PLMisc";
 import { readLong } from "./PLUtil";
+import { PropertyTypeObject } from "./PropertyTypeObject";
 import { PropertyValueResolver } from "./PropertyValueResolver";
 import { PSTUtil } from "./PSTUtil.class";
 
@@ -50,6 +51,13 @@ typeConverters[PT_LONG] = async (arg) => {
 typeConverters[PT_OBJECT] = async (arg) => {
   const heap = arg.view.getUint32(0, true);
   const bytes = await arg.resolveHeap(heap);
+  if (bytes !== undefined) {
+    const view = new DataView(bytes);
+    return new PropertyTypeObject(
+      view.getUint32(0, true),
+      view.getUint32(4, true)
+    );
+  }
   return bytes;
 };
 typeConverters[PT_LONGLONG] = async (arg) => {

@@ -3,9 +3,11 @@ import { OutlookProperties } from './OutlookProperties'
 import { PropertyFinder } from './PAUtil'
 import { PLNode } from './PLNode'
 import { PLSubNode } from './PLSubNode'
+import { PropertyTypeObject } from './PropertyTypeObject'
 import { PSTFile } from './PSTFile.class'
 import { PSTMessage } from './PSTMessage.class'
 import { PSTObject } from './PSTObject.class'
+import { PSTUtil } from './PSTUtil.class'
 
 // Class containing attachment information.
 export class PSTAttachment extends PSTObject {
@@ -71,7 +73,7 @@ export class PSTAttachment extends PSTObject {
    * @type {PSTMessage}
    * @memberof PSTAttachment
    */
-  public get embeddedPSTMessage(): PSTMessage | null {
+  public async getEmbeddedPSTMessage(): Promise<PSTMessage | null> {
     const attachMethod = this._propertyFinder.findByKey(0x3705)?.value;
 
     try {
@@ -80,13 +82,26 @@ export class PSTAttachment extends PSTObject {
         && attachMethod == PSTAttachment.ATTACHMENT_METHOD_EMBEDDED
       ) {
         const attachDataBinary = this._propertyFinder.findByKey(0x3701)?.value;
-        if (true
-          && attachDataBinary instanceof ArrayBuffer
-        ) {
-          // PT_OBJECT or PT_BINARY
+        if (false) { }
+        else if (attachDataBinary instanceof ArrayBuffer) {
+          // PT_BINARY
           attachDataBinary;
 
           throw new Error("how to operate attachDataBinary?");
+        }
+        else if (attachDataBinary instanceof PropertyTypeObject) {
+          const { subNodeId } = attachDataBinary;
+
+          const subNode = await this._subNode.getChildBy(subNodeId);
+
+          if (subNode === undefined) {
+            throw new Error(`childNodeId=0x${subNodeId.toString(16)} of ${this._subNode} not found`);
+          }
+
+          return await this.pstFile.getItemOf(
+            this._node,
+            subNode
+          );
         }
       }
     } catch (err) {
@@ -115,6 +130,9 @@ export class PSTAttachment extends PSTObject {
       const { value } = attachmentDataObject;
       if (value instanceof ArrayBuffer) {
         return value.byteLength;
+      }
+      else if (value instanceof PropertyTypeObject) {
+        return value.size;
       }
     }
     return 0
