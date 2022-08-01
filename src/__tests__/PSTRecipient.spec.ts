@@ -1,15 +1,17 @@
+import { openPstFile } from '../openPstFile'
 import { PSTFile } from '../PSTFile.class'
 import { PSTFolder } from '../PSTFolder.class'
 import { PSTMessage } from '../PSTMessage.class'
+import { PSTRecipient } from '../PSTRecipient.class'
 const resolve = require('path').resolve
 let pstFile: PSTFile
 
-beforeAll(() => {
-  pstFile = new PSTFile(resolve('./src/__tests__/testdata/enron.pst'))
+beforeAll(async () => {
+  pstFile = await openPstFile(resolve('./src/__tests__/testdata/enron.pst'))
 })
 
-afterAll(() => {
-  pstFile.close()
+afterAll(async () => {
+  await pstFile.close()
 })
 
 // get these emails
@@ -29,32 +31,32 @@ afterAll(() => {
 //  |  |  |  |  |-  recipient: Michelle Lokay (E-mail) (michelle.lokay@enron.com)
 
 describe('PSTRecipient tests', () => {
-  it('should have email messages', () => {
-    let childFolders: PSTFolder[] = pstFile.getRootFolder().getSubFolders()
-    expect(childFolders.length).toEqual(3)
+  it('should have email messages', async () => {
+    let childFolders: PSTFolder[] = (await (await pstFile.getRootFolder()).getSubFolders())
+    expect(childFolders.length).toEqual(2)
     let folder = childFolders[0]
-    expect(folder.subFolderCount).toEqual(2)
+    expect((await folder.getSubFolderCount())).toEqual(2)
     expect(folder.displayName).toEqual('Top of Personal Folders')
-    childFolders = folder.getSubFolders()
+    childFolders = (await folder.getSubFolders())
     folder = childFolders[0]
     expect(folder.displayName).toEqual('Deleted Items')
     folder = childFolders[1]
     expect(folder.displayName).toEqual('lokay-m')
-    childFolders = folder.getSubFolders()
+    childFolders = (await folder.getSubFolders())
     folder = childFolders[0]
     expect(folder.displayName).toEqual('MLOKAY (Non-Privileged)')
-    childFolders = folder.getSubFolders()
+    childFolders = (await folder.getSubFolders())
     expect(childFolders[0].displayName).toEqual('TW-Commercial Group')
     const comGroupFolder = childFolders[0]
 
-    let msg: PSTMessage = comGroupFolder.getNextChild()
+    let msg: PSTMessage = (await comGroupFolder.getEmail(0))
     expect(msg.messageClass).toEqual('IPM.Note')
     expect(msg.subject).toEqual("New OBA's")
     expect(msg.senderName).toEqual('Lee  Dennis')
     expect(msg.senderEmailAddress).toEqual('Dennis.Lee@ENRON.com')
     expect(msg.displayTo).toEqual('Lindberg  Lorraine; Watson  Kimberly')
 
-    let recipient = msg.getRecipient(0)
+    let recipient: PSTRecipient = (await msg.getRecipient(0))
     expect(recipient).toBeTruthy()
     if (recipient) {
       // Log.debug1(JSON.stringify(recipient, null, 2));
@@ -62,21 +64,21 @@ describe('PSTRecipient tests', () => {
       expect(recipient.smtpAddress).toEqual('Lorraine.Lindberg@ENRON.com')
     }
 
-    recipient = msg.getRecipient(1)
+    recipient = (await msg.getRecipient(1))
     expect(recipient).toBeTruthy()
     if (recipient) {
       expect(recipient.displayName).toEqual('Watson  Kimberly')
       expect(recipient.smtpAddress).toEqual('Kimberly.Watson@ENRON.com')
     }
 
-    recipient = msg.getRecipient(2)
+    recipient = (await msg.getRecipient(2))
     expect(recipient).toBeTruthy()
     if (recipient) {
       expect(recipient.displayName).toEqual('Lee  Dennis')
       expect(recipient.smtpAddress).toEqual('Dennis.Lee@ENRON.com')
     }
 
-    msg = comGroupFolder.getNextChild()
+    msg = (await comGroupFolder.getEmail(1))
     expect(msg.messageClass).toEqual('IPM.Note')
     expect(msg.subject).toEqual(
       'I/B Link Capacity for November and December 2001'
@@ -84,7 +86,7 @@ describe('PSTRecipient tests', () => {
     expect(msg.sentRepresentingEmailAddress).toEqual('JReames@br-inc.com')
     expect(msg.displayTo).toEqual('Michelle Lokay (E-mail)')
 
-    recipient = msg.getRecipient(0)
+    recipient = (await msg.getRecipient(0))
     expect(recipient).toBeTruthy()
     if (recipient) {
       // Log.debug1(JSON.stringify(recipient, null, 2));

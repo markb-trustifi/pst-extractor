@@ -168,7 +168,7 @@ export class PSTFile {
     );
     const propertyFinder = createPropertyFinder(await pc.list());
 
-    return new PSTMessageStore(this, node, propertyFinder);
+    return new PSTMessageStore(this, node, node.getSubNode(), propertyFinder);
   }
 
   /**

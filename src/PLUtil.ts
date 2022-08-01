@@ -694,7 +694,7 @@ export async function openLowPst(api: ReadFileApi): Promise<PLStore> {
       blockId: number,
       childNodeId: number,
       parentToString: string
-    ): Promise<PLSubNode> {
+    ): Promise<PLSubNode | undefined> {
       const block = blockMap.get(blockId);
       if (block === undefined) {
         throw new Error(
@@ -712,19 +712,15 @@ export async function openLowPst(api: ReadFileApi): Promise<PLStore> {
         subNodeMap
       );
 
-      const subNode = subNodeMap.get(childNodeId);
-      if (subNode === undefined) {
-        throw new Error(
-          `childNodeId=0x${childNodeId.toString(16)}`
-          + `,nidType=0x${(childNodeId & 0x1f).toString(16)}`
-          + ` not found`
-        );
-      }
-
       const thisToString =
         `childNodeId=0x${childNodeId.toString(16)}`
         + `,nidType=0x${(childNodeId & 0x1f).toString(16)}`
         + ` of ${parentToString}`;
+
+      const subNode = subNodeMap.get(childNodeId);
+      if (subNode === undefined) {
+        return undefined;
+      }
 
       return {
         nodeId: childNodeId,

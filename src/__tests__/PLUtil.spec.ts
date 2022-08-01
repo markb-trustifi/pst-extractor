@@ -18,10 +18,10 @@ describe('PLUtil/PHUtil tests', () => {
     const pst = await openPstFile(filePath);
 
     async function walk(folder: PSTFolder, depth: number): Promise<void> {
-      for (let item of (await (await folder.itemCollection()).items())) {
+      for (let item of await folder.getEmails()) {
         //console.log("  ".repeat(depth) + `- ${item.displayName}`);
       }
-      for (let subFolder of (await (await folder.folderCollection()).subFolders())) {
+      for (let subFolder of await folder.getSubFolders()) {
         //console.log("  ".repeat(depth) + `- ${subFolder.displayName}`);
         await walk(subFolder, depth + 1);
       }

@@ -12,11 +12,11 @@ beforeAll(async () => {
   )
 
   // get to Contact folder
-  let childFolders: PSTFolder[] = (await (await (await pstFile.getRootFolder()).folderCollection()).subFolders())
+  let childFolders: PSTFolder[] = (await (await pstFile.getRootFolder()).getSubFolders())
   folder = childFolders[1] // Root - Mailbox
-  childFolders = (await (await folder.folderCollection()).subFolders())
+  childFolders = (await folder.getSubFolders())
   folder = childFolders[4] // IPM_SUBTREE
-  childFolders = (await (await folder.folderCollection()).subFolders())
+  childFolders = (await folder.getSubFolders())
   folder = childFolders[10] // Contacts
 })
 
@@ -30,7 +30,7 @@ describe('PSTContact tests', () => {
   })
 
   it('should have a contact with several fields', async () => {
-    const contact: PSTContact = (await (await folder.itemCollection()).item(0)) as PSTContact
+    const contact: PSTContact = (await folder.getEmail(0)) as PSTContact
     // Log.debug1(JSON.stringify(contact, null, 2));
     expect(contact.messageClass).toEqual('IPM.Contact')
     expect(contact.subject).toEqual('Ed Pfromer')

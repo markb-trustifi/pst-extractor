@@ -10,12 +10,12 @@ import { PSTObject } from './PSTObject.class'
 import { PSTUtil } from './PSTUtil.class'
 import { PLNode } from './PLNode'
 import { createPropertyFinder, PropertyFinder } from './PAUtil'
-import { PSTFolderCollection } from './PSTFolderCollection'
-import { PSTItemCollection } from './PSTItemCollection'
 import { PSTMessage } from './PSTMessage.class'
 import { getTableContext } from './TableContextUtil'
 import { getHeapFrom } from './PHUtil'
 import { PLSubNode } from './PLSubNode'
+import { CollectionAsyncProvider } from './CollectionAsyncProvider'
+import { SingleAsyncProvider } from './SingleAsyncProvider'
 
 /**
  * Represents a folder in the PST File.  Allows you to access child folders or items.
@@ -26,6 +26,9 @@ import { PLSubNode } from './PLSubNode'
  * @extends {PSTObject}
  */
 export class PSTFolder extends PSTObject {
+  private _subFoldersProvider: SingleAsyncProvider<CollectionAsyncProvider<PSTFolder>>;
+  private _emailsProvider: SingleAsyncProvider<CollectionAsyncProvider<PSTMessage>>;
+
   /**
    * Creates an instance of PSTFolder.
    * Represents a folder in the PST File.  Allows you to access child folders or items.
@@ -43,112 +46,161 @@ export class PSTFolder extends PSTObject {
     propertyFinder: PropertyFinder
   ) {
     super(pstFile, node, subNode, propertyFinder)
+
+    this._subFoldersProvider = new SingleAsyncProvider();
+    this._emailsProvider = new SingleAsyncProvider();
+  }
+
+  private async getEmailsProvider(): Promise<CollectionAsyncProvider<PSTMessage>> {
+    return this._emailsProvider.getOrCreate(
+      async () => {
+        const targets: PLNode[] = [];
+
+        if (this.getNodeType() === PSTUtil.NID_TYPE_SEARCH_FOLDER) {
+          // some folder types don't have children:
+        }
+        else {
+          // trying to read emailsTable PSTTable7C
+          const contentsTableNode = this._node.getSiblingNode(PSTUtil.NID_TYPE_CONTENTS_TABLE);
+
+          if (contentsTableNode !== undefined) {
+            const contentsTableNodeReader = contentsTableNode.getSubNode();
+            const heap = await getHeapFrom(
+              contentsTableNodeReader
+            );
+
+            const tc = await getTableContext(
+              heap,
+              this.pstFile.resolver
+            );
+
+            const rows = await tc.rows();
+
+            const orderOfNodeId = [];
+
+            for (let row of rows) {
+              const props = createPropertyFinder(await row.list());
+              const prop = props.findByKey(0x67f2);
+              if (prop !== undefined && typeof prop.value === 'number') {
+                orderOfNodeId.push(prop.value);
+              }
+            }
+
+            const childNodeIdMap = new Map(
+              this._node.getChildren()
+                .map(node => [node.nodeId, node])
+            );
+
+            for (let nodeId of orderOfNodeId) {
+              const found = childNodeIdMap.get(nodeId);
+              if (found !== undefined) {
+                targets.push(found);
+              }
+            }
+          }
+          else {
+            //console.log("fallback");
+            // fallback to children as listed in the descriptor b-tree
+            for (let node of this._node.getChildren()) {
+              if (this.getNodeType(node.nodeId) === PSTUtil.NID_TYPE_NORMAL_MESSAGE) {
+                targets.push(node);
+              }
+            }
+          }
+        }
+
+        return new CollectionAsyncProvider(
+          targets.length,
+          async (index) => {
+            if (!(index in targets)) {
+              throw new RangeError(`email index ${index} out of range. maximum index is ${targets.length - 1}.`);
+            }
+            return await this.pstFile.getItemOf(
+              targets[index],
+              targets[index].getSubNode()
+            );
+          }
+        );
+      }
+    );
+  }
+
+  private async getSubFoldersProvider(): Promise<CollectionAsyncProvider<PSTFolder>> {
+    return this._subFoldersProvider.getOrCreate(
+      async () => {
+        try {
+          const targets: PLNode[] = [];
+
+          for (let node of this._node.getChildren()) {
+            const nodeType = this.getNodeType(node.nodeId);
+            if (false
+              || nodeType === PSTUtil.NID_TYPE_NORMAL_FOLDER
+            ) {
+              targets.push(node);
+            }
+          }
+
+          return new CollectionAsyncProvider(
+            targets.length,
+            async (index) => {
+              if (!(index in targets)) {
+                throw new RangeError(`folder index ${index} out of range. maximum index is ${targets.length - 1}.`);
+              }
+              return await this.pstFile.getFolderOf(targets[index]);
+            }
+          );
+        } catch (err) {
+          console.error(
+            "PSTFolder::getSubFolders Can't get child folders for folder " +
+            this.displayName +
+            '\n' +
+            err
+          )
+          throw err
+        }
+      }
+    );
   }
 
   /**
    * Get folders in one fell swoop, since there's not usually thousands of them.
+   * @returns {PSTFolder[]}
+   * @memberof PSTFolder
    */
-  async folderCollection(): Promise<PSTFolderCollection> {
-    try {
-      const targets: PLNode[] = [];
-
-      for (let node of this._node.getChildren()) {
-        const nodeType = this.getNodeType(node.nodeId);
-        if (false
-          || nodeType === PSTUtil.NID_TYPE_NORMAL_FOLDER
-        ) {
-          targets.push(node);
-        }
-      }
-
-      return new PSTFolderCollection(
-        targets.length,
-        async (index) => {
-          if (!(index in targets)) {
-            throw new RangeError(`folder index ${index} out of range`);
-          }
-          return await this.pstFile.getFolderOf(targets[index]);
-        }
-      );
-    } catch (err) {
-      console.error(
-        "PSTFolder::getSubFolders Can't get child folders for folder " +
-        this.displayName +
-        '\n' +
-        err
-      )
-      throw err
-    }
+  public async getSubFolders(): Promise<PSTFolder[]> {
+    return await (await this.getSubFoldersProvider()).all();
   }
 
-  async itemCollection(): Promise<PSTItemCollection> {
-    const targets: PLNode[] = [];
+  public async getSubFolder(index: number): Promise<PSTFolder> {
+    return await (await this.getSubFoldersProvider()).get(index);
+  }
 
-    if (this.getNodeType() === PSTUtil.NID_TYPE_SEARCH_FOLDER) {
-      // some folder types don't have children:
-    }
-    else {
-      // trying to read emailsTable PSTTable7C
-      const contentsTableNode = this._node.getSiblingNode(PSTUtil.NID_TYPE_CONTENTS_TABLE);
+  /**
+   * The number of child folders in this folder
+   * @readonly
+   * @type {number}
+   * @memberof PSTFolder
+   */
+  public async getSubFolderCount(): Promise<number> {
+    return (await this.getSubFoldersProvider()).count;
+  }
 
-      if (contentsTableNode !== undefined) {
-        const contentsTableNodeReader = contentsTableNode.getSubNode();
-        const heap = await getHeapFrom(
-          contentsTableNodeReader
-        );
+  /**
+   * Number of emails in this folder
+   * @readonly
+   * @type {number}
+   * @memberof PSTFolder
+   */
+  public async getEmailCount(): Promise<number> {
+    return (await this.getEmailsProvider()).count;
+  }
 
-        const tc = await getTableContext(
-          heap,
-          this.pstFile.resolver
-        );
+  public async getEmail(index: number): Promise<PSTMessage> {
+    return (await (await this.getEmailsProvider()).get(index));
+  }
 
-        const rows = await tc.rows();
-
-        const orderOfNodeId = [];
-
-        for (let row of rows) {
-          const props = createPropertyFinder(await row.list());
-          const prop = props.findByKey(0x67f2);
-          if (prop !== undefined && typeof prop.value === 'number') {
-            orderOfNodeId.push(prop.value);
-          }
-        }
-
-        const childNodeIdMap = new Map(
-          this._node.getChildren()
-            .map(node => [node.nodeId, node])
-        );
-
-        for (let nodeId of orderOfNodeId) {
-          const found = childNodeIdMap.get(nodeId);
-          if (found !== undefined) {
-            targets.push(found);
-          }
-        }
-      }
-      else {
-        //console.log("fallback");
-        // fallback to children as listed in the descriptor b-tree
-        for (let node of this._node.getChildren()) {
-          if (this.getNodeType(node.nodeId) === PSTUtil.NID_TYPE_NORMAL_MESSAGE) {
-            targets.push(node);
-          }
-        }
-      }
-    }
-
-    return new PSTItemCollection(
-      targets.length,
-      async (index) => {
-        if (!(index in targets)) {
-          throw new RangeError(`item index ${index} out of range`);
-        }
-        return await this.pstFile.getItemOf(
-          targets[index],
-          targets[index].getSubNode()
-        );
-      }
-    );
+  public async getEmails(): Promise<PSTMessage[]> {
+    return (await (await this.getEmailsProvider()).all());
   }
 
   /**
@@ -192,7 +244,9 @@ export class PSTFolder extends PSTObject {
    * @memberof PSTFolder
    */
   public get hasSubfolders(): boolean {
-    return this.getIntItem(OutlookProperties.PR_SUBFOLDERS) != 0
+    return false
+      || this.getBooleanItem(OutlookProperties.PR_SUBFOLDERS)
+      || this.getIntItem(OutlookProperties.PR_SUBFOLDERS) != 0
   }
 
   /**

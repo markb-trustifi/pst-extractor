@@ -133,6 +133,9 @@ export abstract class PSTObject {
       if (value instanceof Long) {
         return value;
       }
+      else if (typeof value === 'number') {
+        return new Long(value);
+      }
     }
     return defaultValue
   }
@@ -155,7 +158,7 @@ export abstract class PSTObject {
     if (property !== undefined) {
       const { value } = property;
       if (typeof value === 'string') {
-        return value;
+        return value
       }
     }
     return ''

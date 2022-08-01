@@ -2,7 +2,6 @@ import { PSTFile } from '../PSTFile.class'
 import { PSTFolder } from '../PSTFolder.class'
 import { PSTActivity } from '../PSTActivity.class'
 import { openPstFile } from '../index'
-import { PSTFolderCollection } from '../PSTFolderCollection'
 const resolve = require('path').resolve
 let pstFile: PSTFile
 let folder: PSTFolder
@@ -13,14 +12,14 @@ beforeAll(async () => {
   )
 
   // get to Journal folder
-  let childFolders: PSTFolderCollection = await (await pstFile.getRootFolder()).folderCollection()
-  folder = await childFolders.subFolder(1) // Root - Mailbox
+  let childFolders: PSTFolder[] = (await (await pstFile.getRootFolder()).getSubFolders())
+  folder = childFolders[1] // Root - Mailbox
   expect(folder.displayName).toBe("Root - Mailbox");
-  childFolders = await folder.folderCollection()
-  folder = await childFolders.subFolder(4) // IPM_SUBTREE
+  childFolders = await folder.getSubFolders()
+  folder = childFolders[4] // IPM_SUBTREE
   expect(folder.displayName).toBe("IPM_SUBTREE");
-  childFolders = await folder.folderCollection()
-  folder = await childFolders.subFolder(15) // Journal
+  childFolders = await folder.getSubFolders()
+  folder = childFolders[15] // Journal
   expect(folder.displayName).toBe("Journal");
 })
 
@@ -34,9 +33,7 @@ describe('PSTActivity tests', () => {
   })
 
   it('root folder should have a journal entry', async () => {
-    const collection = await folder.itemCollection();
-
-    const activity: PSTActivity = (await collection.item(0)) as PSTActivity
+    const activity: PSTActivity = (await folder.getEmail(0)) as PSTActivity
     // console.log(JSON.stringify(activity, null, 2));
     expect(activity.messageClass).toEqual('IPM.Activity')
     expect(activity.subject).toEqual('called Ed')

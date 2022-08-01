@@ -1,21 +1,25 @@
+import { openPstFile } from '../openPstFile'
 import { PSTFile } from '../PSTFile.class'
 import { PSTFolder } from '../PSTFolder.class'
 const resolve = require('path').resolve
 let pstFile: PSTFile
 
-beforeAll(() => {
-  pstFile = new PSTFile(resolve('./src/__tests__/testdata/enron.pst'))
+beforeAll(async () => {
+  pstFile = await openPstFile(resolve('./src/__tests__/testdata/enron.pst'))
 })
 
-afterAll(() => {
-  pstFile.close()
+afterAll(async () => {
+  await pstFile.close()
 })
 
 describe('PSTFolder tests', () => {
-  it('should have a root folder', () => {
-    const folder: PSTFolder = pstFile.getRootFolder()
+  it('should have a root folder', async () => {
+    const folder: PSTFolder = (await pstFile.getRootFolder())
     expect(folder).toBeTruthy()
-    expect(folder.subFolderCount).toEqual(3)
+    expect(folder.displayName).toBe("")
+    expect((await folder.getSubFolder(0)).displayName).toBe("Top of Personal Folders")
+    expect((await folder.getSubFolder(1)).displayName).toBe("Search Root")
+    expect((await folder.getSubFolderCount())).toEqual(2)
     expect(folder.hasSubfolders).toBeTruthy()
   })
 
@@ -32,28 +36,28 @@ describe('PSTFolder tests', () => {
   //  |- Search Root
   //  |- SPAM Search Folder 2
 
-  it('root folder should have sub folders', () => {
-    let childFolders: PSTFolder[] = pstFile.getRootFolder().getSubFolders()
-    expect(childFolders.length).toEqual(3)
+  it('root folder should have sub folders', async () => {
+    let childFolders: PSTFolder[] = (await (await pstFile.getRootFolder()).getSubFolders())
+    expect(childFolders.length).toEqual(2)
     let folder = childFolders[0]
-    expect(folder.subFolderCount).toEqual(2)
+    expect((await folder.getSubFolderCount())).toEqual(2)
     expect(folder.displayName).toEqual('Top of Personal Folders')
-    childFolders = folder.getSubFolders()
+    childFolders = (await folder.getSubFolders())
     folder = childFolders[0]
     expect(folder.displayName).toEqual('Deleted Items')
     folder = childFolders[1]
     expect(folder.displayName).toEqual('lokay-m')
     // Log.debug1(JSON.stringify(folder, null, 2));
-    childFolders = folder.getSubFolders()
+    childFolders = (await folder.getSubFolders())
     folder = childFolders[0]
     expect(folder.displayName).toEqual('MLOKAY (Non-Privileged)')
-    childFolders = folder.getSubFolders()
+    childFolders = (await folder.getSubFolders())
     expect(childFolders[0].displayName).toEqual('TW-Commercial Group')
     expect(childFolders[1].displayName).toEqual('Systems')
     expect(childFolders[2].displayName).toEqual('Sent Items')
     expect(childFolders[3].displayName).toEqual('Personal')
-    expect(folder.subFolderCount).toEqual(4)
-    expect(folder.emailCount).toEqual(1)
+    expect((await folder.getSubFolderCount())).toEqual(4)
+    expect((await folder.getEmailCount())).toEqual(1)
     expect(folder.folderType).toEqual(0)
     expect(folder.contentCount).toEqual(1)
     expect(folder.unreadCount).toEqual(0)
@@ -62,8 +66,8 @@ describe('PSTFolder tests', () => {
     expect(folder.hasSubfolders).toEqual(true)
     // Log.debug1(JSON.stringify(folder, null, 2));
 
-    folder.moveChildCursorTo(0)
-    folder.moveChildCursorTo(1)
-    folder.moveChildCursorTo(100)
+    await folder.getEmail(0)
+    expect((async () => { await folder.getEmail(1) })()).rejects.toThrow(RangeError)
+    expect((async () => { await folder.getEmail(100) })()).rejects.toThrow(RangeError)
   })
 })

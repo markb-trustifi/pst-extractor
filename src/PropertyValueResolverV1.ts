@@ -90,8 +90,9 @@ typeConverters[PT_UNICODE] = async (arg) => {
   const heap = arg.view.getUint32(0, true);
   const bytes = await arg.resolveHeap(heap);
   return (bytes !== undefined)
-    ? Buffer.from(bytes).toString('utf16le')
+    ? Buffer.from(bytes).toString('utf16le').replace(/\0/g, '')
     : undefined;
+  // `.replace(/\0/g, '')` is needed to eliminate a trailing null char.
 };
 typeConverters[PT_SYSTIME] = async (arg) => {
   const bytes = await arg.getBytes(8);
@@ -131,7 +132,7 @@ typeConverters[PT_MV_UNICODE] = async (arg) => {
         const elementBytes = bytes.slice(from, to);
 
         list.push(
-          Buffer.from(elementBytes).toString('utf16le')
+          Buffer.from(elementBytes).toString('utf16le').replace(/\0/g, '')
         )
       }
     }

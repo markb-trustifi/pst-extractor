@@ -1,15 +1,16 @@
+import { openPstFile } from '../openPstFile'
 import { PSTFile } from '../PSTFile.class'
 import { PSTFolder } from '../PSTFolder.class'
 import { PSTMessage } from '../PSTMessage.class'
 const resolve = require('path').resolve
 let pstFile: PSTFile
 
-beforeAll(() => {
-  pstFile = new PSTFile(resolve('./src/__tests__/testdata/enron.pst'))
+beforeAll(async () => {
+  pstFile = await openPstFile(resolve('./src/__tests__/testdata/enron.pst'))
 })
 
-afterAll(() => {
-  pstFile.close()
+afterAll(async () => {
+  await pstFile.close()
 })
 
 // get these emails
@@ -23,29 +24,28 @@ afterAll(() => {
 //  |  |  |  |  |- Email: 2097220 - I/B Link Capacity for November and December 2001
 
 describe('PSTObject tests', () => {
-  it('should have basic attributes', () => {
-    let childFolders: PSTFolder[] = pstFile.getRootFolder().getSubFolders()
-    expect(childFolders.length).toEqual(3)
+  it('should have basic attributes', async () => {
+    let childFolders: PSTFolder[] = (await (await pstFile.getRootFolder()).getSubFolders())
+    expect(childFolders.length).toEqual(2)
     let folder = childFolders[0]
-    expect(folder.subFolderCount).toEqual(2)
+    expect((await folder.getSubFolderCount())).toEqual(2)
     expect(folder.displayName).toEqual('Top of Personal Folders')
-    childFolders = folder.getSubFolders()
+    childFolders = (await folder.getSubFolders())
     folder = childFolders[0]
     expect(folder.displayName).toEqual('Deleted Items')
     folder = childFolders[1]
     expect(folder.displayName).toEqual('lokay-m')
-    childFolders = folder.getSubFolders()
+    childFolders = (await folder.getSubFolders())
     folder = childFolders[0]
     expect(folder.displayName).toEqual('MLOKAY (Non-Privileged)')
-    childFolders = folder.getSubFolders()
+    childFolders = (await folder.getSubFolders())
     expect(childFolders[0].displayName).toEqual('TW-Commercial Group')
     const comGroupFolder = childFolders[0]
     // Log.debug1(JSON.stringify(comGroupFolder, null, 2));
 
-    const msg: PSTMessage = comGroupFolder.getNextChild()
+    const msg: PSTMessage = (await comGroupFolder.getEmail(0))
     // Log.debug1(JSON.stringify(msg, null, 2));
     expect(msg.messageClass).toEqual('IPM.Note')
-    expect(msg.stringCodepage).toEqual('us-ascii')
     expect(msg.messageSize.toNumber()).toEqual(653764)
   })
 })

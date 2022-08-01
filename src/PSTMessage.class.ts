@@ -13,13 +13,14 @@ import { PSTRecipient } from './PSTRecipient.class'
 import { PLNode } from './PLNode'
 import { PropertyValueResolver } from './PropertyValueResolver'
 import { createPropertyFinder, PropertyFinder } from './PAUtil'
-import { PSTAttachmentCollection } from './PSTAttachmentCollection'
 import { getHeapFrom } from './PHUtil'
 import { getTableContext } from './TableContextUtil'
 import { KeyedDelay } from './KeyedDelay'
 import { PSTRecipientCollection } from './PSTRecipientCollection'
 import { getPropertyContext } from './PropertyContextUtil'
 import { PLSubNode } from './PLSubNode'
+import { SingleAsyncProvider } from './SingleAsyncProvider'
+import { CollectionAsyncProvider } from './CollectionAsyncProvider'
 
 enum PidTagMessageFlags {
   MSGFLAG_READ = 0x01,
@@ -33,6 +34,9 @@ enum PidTagMessageFlags {
 }
 
 export class PSTMessage extends PSTObject {
+  private _attachmentsProvider: SingleAsyncProvider<CollectionAsyncProvider<PSTAttachment>>;
+  private _recipientsProvider: SingleAsyncProvider<CollectionAsyncProvider<PSTRecipient>>;
+
   public static IMPORTANCE_LOW = 0
   public static IMPORTANCE_NORMAL = 1
   public static IMPORTANCE_HIGH = 2
@@ -57,6 +61,9 @@ export class PSTMessage extends PSTObject {
     propertyFinder: PropertyFinder
   ) {
     super(pstFile, node, subNode, propertyFinder);
+
+    this._attachmentsProvider = new SingleAsyncProvider();
+    this._recipientsProvider = new SingleAsyncProvider();
   }
 
   /*
@@ -187,53 +194,81 @@ export class PSTMessage extends PSTObject {
   //#region Recipients
   //#endregion
 
-  async recipientCollection(): Promise<PSTRecipientCollection> {
-    try {
-      const subNode = this._node.getSubNode();
+  /**
+   * Get the recipients table.
+   * @readonly
+   * @type {number}
+   * @memberof PSTMessage
+   */
+  public async getNumberOfRecipients(): Promise<number> {
+    return (await this.getRecipientsProvider()).count
+  }
 
-      const childNode = await subNode.getChildBy(0x692);
+  /**
+   * Get specific recipient.
+   * @param {number} recipientNumber
+   * @returns {PSTRecipient}
+   * @memberof PSTMessage
+   */
+  public async getRecipient(recipientNumber: number): Promise<PSTRecipient> {
+    return (await this.getRecipientsProvider()).get(recipientNumber);
+  }
 
-      if (childNode !== undefined) {
-        const heap = await getHeapFrom(childNode);
-        const tc = await getTableContext(
-          heap,
-          this.pstFile.resolver
-        );
+  public async getRecipients(): Promise<PSTRecipient[]> {
+    return (await this.getRecipientsProvider()).all();
+  }
 
-        const rows = await tc.rows();
+  private async getRecipientsProvider(): Promise<CollectionAsyncProvider<PSTRecipient>> {
+    return this._recipientsProvider.getOrCreate(
+      async () => {
+        try {
+          const subNode = this._node.getSubNode();
 
-        return new PSTRecipientCollection(
-          rows.length,
-          async (index) => {
-            if (!(index in rows)) {
-              throw new RangeError(`recipient index ${index} out of range`);
-            }
-            const propertyFinder = createPropertyFinder(await rows[index].list());
-            return new PSTRecipient(
-              this.pstFile,
-              this._node,
-              this._subNode,
-              propertyFinder
+          const childNode = await subNode.getChildBy(0x692);
+
+          if (childNode !== undefined) {
+            const heap = await getHeapFrom(childNode);
+            const tc = await getTableContext(
+              heap,
+              this.pstFile.resolver
+            );
+
+            const rows = await tc.rows();
+
+            return new CollectionAsyncProvider(
+              rows.length,
+              async (index) => {
+                if (!(index in rows)) {
+                  throw new RangeError(`recipient index ${index} out of range. maximum index is ${rows.length - 1}.`);
+                }
+                const propertyFinder = createPropertyFinder(await rows[index].list());
+                return new PSTRecipient(
+                  this.pstFile,
+                  this._node,
+                  this._subNode,
+                  propertyFinder
+                );
+              }
             );
           }
-        );
-      }
 
-      return new PSTRecipientCollection(
-        0,
-        index => {
-          throw new Error("no recipient exists")
+          return new CollectionAsyncProvider(
+            0,
+            index => {
+              throw new Error("no recipient exists")
+            }
+          );
+        } catch (err) {
+          console.error(
+            "PSTFolder::getSubFolders Can't get child folders for folder " +
+            this.displayName +
+            '\n' +
+            err
+          )
+          throw err
         }
-      );
-    } catch (err) {
-      console.error(
-        "PSTFolder::getSubFolders Can't get child folders for folder " +
-        this.displayName +
-        '\n' +
-        err
-      )
-      throw err
-    }
+      }
+    );
   }
 
   /**
@@ -389,84 +424,111 @@ export class PSTMessage extends PSTObject {
   //#region Attachments
   //#endregion
 
-  /**
-   * Get folders in one fell swoop, since there's not usually thousands of them.
-   */
-  async attachmentCollection(): Promise<PSTAttachmentCollection> {
-    try {
-      const childNode = await this._subNode.getChildBy(0x671);
 
-      if (childNode !== undefined) {
-        const heap = await getHeapFrom(childNode);
-        const tc = await getTableContext(
-          heap,
-          this.pstFile.resolver
-        );
+  private async getAttachmentsProvider(): Promise<CollectionAsyncProvider<PSTAttachment>> {
+    return this._attachmentsProvider.getOrCreate(
+      async () => {
+        try {
+          const childNode = await this._subNode.getChildBy(0x671);
 
-        const rows = await tc.rows();
-
-        return new PSTAttachmentCollection(
-          rows.length,
-          async (index) => {
-            if (!(index in rows)) {
-              throw new RangeError(`attachment index ${index} out of range`);
-            }
-
-
-            // xxx1 is for properties in one row in TableContext.
-            const list1 = await rows[index].list();
-            const propertyFinder1 = createPropertyFinder(list1);
-
-            const ltpRowId = propertyFinder1.findByKey(0x67f2);
-            if (ltpRowId === undefined) {
-              throw new Error("ltpRowId not found");
-            }
-            if (typeof ltpRowId.value !== 'number') {
-              throw new Error("ltpRowId invalid type");
-            }
-
-            // xxx2 is for properties in PropertyContext in dedicated subData
-            const child2 = await this._subNode.getChildBy(ltpRowId.value);
-            if (child2 === undefined) {
-              throw new Error();
-            }
-
-            const heap2 = await getHeapFrom(child2);
-
-            const pc2 = await getPropertyContext(
-              heap2,
+          if (childNode !== undefined) {
+            const heap = await getHeapFrom(childNode);
+            const tc = await getTableContext(
+              heap,
               this.pstFile.resolver
             );
 
-            const propertyFinder2 = createPropertyFinder(
-              await pc2.list()
-            );
+            const rows = await tc.rows();
 
-            return new PSTAttachment(
-              this.pstFile,
-              this._node,
-              child2,
-              propertyFinder2
+            return new CollectionAsyncProvider(
+              rows.length,
+              async (index) => {
+                if (!(index in rows)) {
+                  throw new RangeError(`attachment index ${index} out of range. maximum index is ${rows.length - 1}.`);
+                }
+
+
+                // xxx1 is for properties in one row in TableContext.
+                const list1 = await rows[index].list();
+                const propertyFinder1 = createPropertyFinder(list1);
+
+                const ltpRowId = propertyFinder1.findByKey(0x67f2);
+                if (ltpRowId === undefined) {
+                  throw new Error("ltpRowId not found");
+                }
+                if (typeof ltpRowId.value !== 'number') {
+                  throw new Error("ltpRowId invalid type");
+                }
+
+
+                // xxx2 is for properties in PropertyContext in dedicated subData
+                const child2 = await this._subNode.getChildBy(ltpRowId.value);
+                if (child2 === undefined) {
+                  throw new Error();
+                }
+
+                const heap2 = await getHeapFrom(child2);
+
+                const pc2 = await getPropertyContext(
+                  heap2,
+                  this.pstFile.resolver
+                );
+
+                const propertyFinder2 = createPropertyFinder(
+                  await pc2.list()
+                );
+
+                return new PSTAttachment(
+                  this.pstFile,
+                  this._node,
+                  child2,
+                  propertyFinder2
+                );
+              }
             );
           }
-        );
-      }
 
-      return new PSTAttachmentCollection(
-        0,
-        index => {
-          throw new Error("no attachment exists")
+          return new CollectionAsyncProvider(
+            0,
+            index => {
+              throw new Error("no attachment exists")
+            }
+          );
+        } catch (err) {
+          console.error(
+            "PSTFolder::getSubFolders Can't get child folders for folder " +
+            this.displayName +
+            '\n' +
+            err
+          )
+          throw err
         }
-      );
-    } catch (err) {
-      console.error(
-        "PSTFolder::getSubFolders Can't get child folders for folder " +
-        this.displayName +
-        '\n' +
-        err
-      )
-      throw err
-    }
+      }
+    );
+  }
+
+  /**
+   * Number of attachments by counting rows in attachment table.
+   * @readonly
+   * @type {number}
+   * @memberof PSTMessage
+   */
+  public async getNumberOfAttachments(): Promise<number> {
+    return (await this.getAttachmentsProvider()).count
+  }
+
+  /**
+   * Get specific attachment from table using index.
+   * @param {number} attachmentNumber
+   * @returns {PSTAttachment}
+   * @memberof PSTMessage
+   */
+  public async getAttachment(attachmentNumber: number): Promise<PSTAttachment> {
+    return (await (await this.getAttachmentsProvider()).get(attachmentNumber));
+  }
+
+  public async getAttachments(): Promise<PSTAttachment[]> {
+    return (await (await this.getAttachmentsProvider()).all())
   }
 
   //#region Miscellaneous properties

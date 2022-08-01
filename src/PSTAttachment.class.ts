@@ -95,7 +95,10 @@ export class PSTAttachment extends PSTObject {
           const subNode = await this._subNode.getChildBy(subNodeId);
 
           if (subNode === undefined) {
-            throw new Error(`childNodeId=0x${subNodeId.toString(16)} of ${this._subNode} not found`);
+            throw new Error(
+              `childNodeId=0x${subNodeId.toString(16)}`
+              + ` of ${this._subNode} not found`
+            );
           }
 
           return await this.pstFile.getItemOf(

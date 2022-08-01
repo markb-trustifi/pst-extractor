@@ -1,21 +1,19 @@
+import { openPstFile } from '../openPstFile'
 import { PSTFile } from '../PSTFile.class'
 const resolve = require('path').resolve
 let pstFile: PSTFile
 
-beforeAll(() => {
-  pstFile = new PSTFile(resolve('./src/__tests__/testdata/enron.pst'))
+beforeAll(async () => {
+  pstFile = await openPstFile(resolve('./src/__tests__/testdata/enron.pst'))
 })
 
-afterAll(() => {
-  pstFile.close()
+afterAll(async () => {
+  await pstFile.close()
 })
 
 describe('PSTfile tests', () => {
-  it('should open the file', () => {
-    expect(pstFile.encryptionType).toEqual(1)
-    expect(pstFile.pstFileType).toEqual(23)
-    expect(pstFile.pstFilename).toContain('enron.pst')
-    expect(pstFile.getMessageStore().displayName).toEqual('Personal folders')
-    expect(pstFile.getRootFolder()).toBeTruthy()
+  it('should open the file', async () => {
+    expect((await pstFile.getMessageStore()).displayName).toEqual('Personal folders')
+    expect((await pstFile.getRootFolder())).toBeTruthy()
   })
 })

@@ -1,3 +1,4 @@
+import { openPstFile } from '../openPstFile'
 import { PSTFile } from '../PSTFile.class'
 import { PSTFolder } from '../PSTFolder.class'
 import { PSTMessage } from '../PSTMessage.class'
@@ -5,8 +6,8 @@ const resolve = require('path').resolve
 let pstFile: PSTFile
 let childFolders: PSTFolder[]
 
-beforeAll(() => {
-  pstFile = new PSTFile(resolve('./src/__tests__/testdata/enron.pst'))
+beforeAll(async () => {
+  pstFile = await openPstFile(resolve('./src/__tests__/testdata/enron.pst'))
 
   // get to this point in hierarchy
   // Personal folders
@@ -15,24 +16,24 @@ beforeAll(() => {
   //  |  |- lokay-m
   //  |  |  |- MLOKAY (Non-Privileged)
 
-  childFolders = pstFile.getRootFolder().getSubFolders()
-  expect(childFolders.length).toEqual(3)
+  childFolders = (await (await pstFile.getRootFolder()).getSubFolders())
+  expect(childFolders.length).toEqual(2)
   let folder = childFolders[0]
-  expect(folder.subFolderCount).toEqual(2)
+  expect((await folder.getSubFolderCount())).toEqual(2)
   expect(folder.displayName).toEqual('Top of Personal Folders')
-  childFolders = folder.getSubFolders()
+  childFolders = (await folder.getSubFolders())
   folder = childFolders[0]
   expect(folder.displayName).toEqual('Deleted Items')
   folder = childFolders[1]
   expect(folder.displayName).toEqual('lokay-m')
-  childFolders = folder.getSubFolders()
+  childFolders = (await folder.getSubFolders())
   folder = childFolders[0]
   expect(folder.displayName).toEqual('MLOKAY (Non-Privileged)')
-  childFolders = folder.getSubFolders()
+  childFolders = (await folder.getSubFolders())
 })
 
-afterAll(() => {
-  pstFile.close()
+afterAll(async () => {
+  await pstFile.close()
 })
 
 // get these emails
@@ -46,11 +47,11 @@ afterAll(() => {
 //  |  |  |  |  |- Email: 2097220 - I/B Link Capacity for November and December 2001
 
 describe('PSTMessage tests', () => {
-  it('should have email messages', () => {
+  it('should have email messages', async () => {
     expect(childFolders[0].displayName).toEqual('TW-Commercial Group')
     const comGroupFolder = childFolders[0]
 
-    let msg: PSTMessage = comGroupFolder.getNextChild()
+    let msg: PSTMessage = (await comGroupFolder.getEmail(0))
     // Log.debug1(JSON.stringify(msg, null, 2));
     expect(msg.messageClass).toEqual('IPM.Note')
     expect(msg.subject).toEqual("New OBA's")
@@ -62,7 +63,7 @@ describe('PSTMessage tests', () => {
     )
     expect(body.length).toEqual(678)
 
-    msg = comGroupFolder.getNextChild()
+    msg = (await comGroupFolder.getEmail(1))
     expect(msg.messageClass).toEqual('IPM.Note')
     expect(msg.displayTo).toEqual('Michelle Lokay (E-mail)')
     body = msg.body
@@ -147,7 +148,7 @@ describe('PSTMessage tests', () => {
     expect(msg.rtfSyncTrailingCount).toEqual(0)
     expect(msg.iconIndex).toEqual(0)
     expect(msg.reminderDelta).toEqual(0)
-    expect(msg.numberOfAttachments).toEqual(0)
+    expect((await msg.getNumberOfAttachments())).toEqual(0)
     expect(msg.internetMessageId).toEqual(
       '<OXDAXN4L22RH32V3FYRFYTV2QE0MXYONB@zlsvr22>'
     )
@@ -179,11 +180,11 @@ describe('PSTMessage tests', () => {
   //  |  |  |  |- Sent Items
   //  |  |  |  |- Personal
   //  |  |  |  |  |- Email: 2097924 - Fwd: Enjoy fall in an Alamo midsize car -- just $169 a week!
-  it('should have email message which uses block skip points', () => {
+  it('should have email message which uses block skip points', async () => {
     expect(childFolders[3].displayName).toEqual('Personal')
     const personalFolder = childFolders[3]
 
-    const msg: PSTMessage = personalFolder.getNextChild()
+    const msg: PSTMessage = (await personalFolder.getEmail(0))
     // Log.debug1(JSON.stringify(msg, null, 2));
     expect(msg.messageClass).toEqual('IPM.Note')
     expect(msg.subject).toEqual(

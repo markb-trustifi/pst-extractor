@@ -2,7 +2,6 @@ import { PSTFile } from '../PSTFile.class'
 import { PSTFolder } from '../PSTFolder.class'
 import { PSTAppointment } from '../PSTAppointment.class'
 import { openPstFile } from '../index'
-import { PSTFolderCollection } from '../PSTFolderCollection'
 const resolve = require('path').resolve
 let pstFile: PSTFile
 let folder: PSTFolder
@@ -13,12 +12,12 @@ beforeAll(async () => {
   )
 
   // get to Calendar folder
-  let childFolders: PSTFolderCollection = await (await pstFile.getRootFolder()).folderCollection()
-  folder = await childFolders.subFolder(1) // Root - Mailbox
-  childFolders = await folder.folderCollection()
-  folder = await childFolders.subFolder(4) // IPM_SUBTREE
-  childFolders = await folder.folderCollection()
-  folder = await childFolders.subFolder(11) // Calendar
+  let childFolders: PSTFolder[] = await (await (await pstFile.getRootFolder()).getSubFolders())
+  folder = await childFolders[1] // Root - Mailbox
+  childFolders = await (await folder.getSubFolders())
+  folder = await childFolders[4] // IPM_SUBTREE
+  childFolders = await (await folder.getSubFolders())
+  folder = await childFolders[11] // Calendar
 })
 
 afterAll(async () => {
@@ -31,9 +30,7 @@ describe('PSTAppointment tests', () => {
   })
 
   it('should have two calendar items', async () => {
-    const collection = await folder.itemCollection();
-
-    let appt: PSTAppointment = (await collection.item(0)) as PSTAppointment
+    let appt: PSTAppointment = (await folder.getEmail(0)) as PSTAppointment
     // console.log(JSON.stringify(appt, null, 2));
     expect(appt.messageClass).toEqual('IPM.Appointment')
     expect(appt.subject).toEqual('get lunch')
@@ -41,7 +38,7 @@ describe('PSTAppointment tests', () => {
     expect(appt.senderName).toEqual('Mountain Man')
     expect(appt.duration).toEqual(60)
 
-    appt = (await collection.item(1)) as PSTAppointment
+    appt = (await folder.getEmail(1)) as PSTAppointment
     // console.log(JSON.stringify(appt, null, 2));
     expect(appt.messageClass).toEqual('IPM.Appointment')
     expect(appt.subject).toEqual('workout')

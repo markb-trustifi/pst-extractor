@@ -2,6 +2,7 @@ import { PSTFile } from '../PSTFile.class'
 import { PSTFolder } from '../PSTFolder.class'
 import { PSTAppointment } from '../PSTAppointment.class'
 import { PatternType, RecurrencePattern } from '../RecurrencePattern.class'
+import { openPstFile } from '../openPstFile'
 const resolve = require('path').resolve
 let pstFile: PSTFile
 let folder: PSTFolder
@@ -112,22 +113,22 @@ let folder: PSTFolder
  |  |- ItemProcSearch
 */
 
-beforeAll(() => {
-  pstFile = new PSTFile(
+beforeAll(async () => {
+  pstFile = await openPstFile(
     resolve('./src/__tests__/testdata/pstextractortest@outlook.com.ost')
   )
 
   // get to Calendar folder
-  let childFolders: PSTFolder[] = pstFile.getRootFolder().getSubFolders()
+  let childFolders: PSTFolder[] = (await (await pstFile.getRootFolder()).getSubFolders())
   folder = childFolders[1] // Root - Mailbox
-  childFolders = folder.getSubFolders()
+  childFolders = (await folder.getSubFolders())
   folder = childFolders[4] // IPM_SUBTREE
-  childFolders = folder.getSubFolders()
+  childFolders = (await folder.getSubFolders())
   folder = childFolders[15] // Calendar
 })
 
-afterAll(() => {
-  pstFile.close()
+afterAll(async () => {
+  await pstFile.close()
 })
 
 function winToJsDate(dateInt: number): Date {
@@ -139,27 +140,33 @@ describe('RecurrencePattern tests', () => {
     expect(folder.displayName).toEqual('Calendar')
   })
 
-  it('should have repeating events', () => {
+  it('should have repeating events', async () => {
     // occurs weekly for 10 weeks
-    let appt: PSTAppointment = folder.getNextChild()
+    let appt: PSTAppointment = (await folder.getEmail(0)) as PSTAppointment
     expect(appt.messageClass).toEqual('IPM.Appointment')
     expect(appt.subject).toEqual('repeats every monday for 10 weeks')
     expect(appt.startTime).toEqual(new Date('2021-08-09T17:00:00.000Z'))
     expect(appt.endTime).toEqual(new Date('2021-08-09T18:00:00.000Z'))
     expect(appt.recurrencePattern).toEqual('every Monday from 10:00 AM to 11:00 AM')
     expect(appt.duration).toEqual(60)
+    if (!appt.recurrenceStructure) {
+      throw new Error("appt.recurrenceStructure must be present");
+    }
     let recurrencePattern = new RecurrencePattern(appt.recurrenceStructure)
     expect(recurrencePattern.occurrenceCount).toEqual(10)
     expect(recurrencePattern.patternType).toEqual(PatternType.Week)
 
     // occurs daily for 3 days
-    appt = folder.getNextChild()
+    appt = (await folder.getEmail(1))
     expect(appt.messageClass).toEqual('IPM.Appointment')
     expect(appt.subject).toEqual('repeats for 3 days')
     expect(appt.startTime).toEqual(new Date('2021-08-10T19:00:00.000Z'))
     expect(appt.endTime).toEqual(new Date('2021-08-10T19:30:00.000Z'))
     expect(appt.recurrencePattern).toEqual('every day from 12:00 PM to 12:30 PM')
     expect(appt.duration).toEqual(30)
+    if (!appt.recurrenceStructure) {
+      throw new Error("appt.recurrenceStructure must be present");
+    }
     recurrencePattern = new RecurrencePattern(appt.recurrenceStructure)
     // console.log(JSON.stringify(recurrencePattern, null, 2));
     expect(recurrencePattern.occurrenceCount).toEqual(3)
