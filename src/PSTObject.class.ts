@@ -4,6 +4,7 @@ import { OutlookProperties } from './OutlookProperties'
 import { PropertyFinder } from './PAUtil'
 import { PLNode } from './PLNode'
 import { PLSubNode } from './PLSubNode'
+import { Property } from './Property'
 import { PSTFile } from './PSTFile.class'
 
 export abstract class PSTObject {
@@ -37,7 +38,7 @@ export abstract class PSTObject {
    * @returns {number}
    * @memberof PSTObject
    */
-  public getNodeType(descriptorIdentifier?: number): number {
+  protected getNodeType(descriptorIdentifier?: number): number {
     if (descriptorIdentifier) {
       return descriptorIdentifier & 0x1f
     } else if (this._node.nodeId) {
@@ -170,7 +171,7 @@ export abstract class PSTObject {
    * @returns {Date}
    * @memberof PSTObject
    */
-  public getDateItem(identifier: number): Date | null {
+  protected getDateItem(identifier: number): Date | null {
     const property = this._propertyFinder.findByKey(identifier);
     if (property !== undefined) {
       const { value } = property;
@@ -208,6 +209,16 @@ export abstract class PSTObject {
    */
   public get displayName(): string {
     return this.getStringItem(OutlookProperties.PR_DISPLAY_NAME)
+  }
+
+  /**
+   * Try to get specified property from PropertyContext.
+   * 
+   * @param key `0x3001` is `PR_DISPLAY_NAME` for example
+   * @returns The found one will be returned. Otherwise `undefined` is returned.
+   */
+  getProperty(key: number): Property | undefined {
+    return this._propertyFinder.findByKey(key);
   }
 
   /**

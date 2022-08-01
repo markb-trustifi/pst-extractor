@@ -1,9 +1,15 @@
-import { openPstFile } from './openPstFile'
-
 export { PSTFile } from './PSTFile.class'
 export { PSTTask } from './PSTTask.class'
 export { PSTRecipient } from './PSTRecipient.class'
 export { PSTAttachment } from './PSTAttachment.class'
 export { PSTMessage } from './PSTMessage.class'
 export { PSTFolder } from './PSTFolder.class'
-export { openPstFile };
+export { openPstFile, openPst, } from './openPstFile'
+export { PSTOpts } from './PSTOpts'
+export { PSTContact } from './PSTContact.class'
+export { PSTAppointment } from './PSTAppointment.class'
+export { PSTMessageStore } from './PSTMessageStore.class'
+export { PSTObject } from './PSTObject.class'
+export { Property } from './Property'
+export { PropertyTypeObject } from './PropertyTypeObject'
+export { ReadFileApi, ReadFile, Close, } from './PLUtil'

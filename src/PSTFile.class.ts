@@ -17,23 +17,88 @@ import { PLSubNode } from './PLSubNode'
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 
 export class PSTFile {
+  /**
+   * @internal
+   */
   public static ENCRYPTION_TYPE_NONE = 0
+
+  /**
+   * @internal
+   */
   public static ENCRYPTION_TYPE_COMPRESSIBLE = 1
+
   public static MESSAGE_STORE_DESCRIPTOR_IDENTIFIER = 33
+
   public static ROOT_FOLDER_DESCRIPTOR_IDENTIFIER = 290
+
+  /**
+   * @internal
+   */
   public static PST_TYPE_ANSI = 14
+
+  /**
+   * @internal
+   */
   public static PST_TYPE_ANSI_2 = 15
+
+  /**
+   * @internal
+   */
   public static PST_TYPE_UNICODE = 23
+
+  /**
+   * @internal
+   */
   public static PST_TYPE_2013_UNICODE = 36
+
+  /**
+   * @internal
+   */
   public static PS_PUBLIC_STRINGS = 0
+
+  /**
+   * @internal
+   */
   public static PS_INTERNET_HEADERS = 3
+
+  /**
+   * @internal
+   */
   public static PSETID_Messaging = 7
+
+  /**
+   * @internal
+   */
   public static PSETID_Note = 8
+
+  /**
+   * @internal
+   */
   public static PSETID_PostRss = 9
+
+  /**
+   * @internal
+   */
   public static PSETID_Task = 10
+
+  /**
+   * @internal
+   */
   public static PSETID_UnifiedMessaging = 11
+
+  /**
+   * @internal
+   */
   public static PS_MAPI = 12
+
+  /**
+   * @internal
+   */
   public static PSETID_AirSync = 13
+
+  /**
+   * @internal
+   */
   public static PSETID_Sharing = 14
 
   private guidMap: Map<string, number> = new Map([

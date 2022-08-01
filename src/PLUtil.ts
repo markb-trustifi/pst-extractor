@@ -9,11 +9,28 @@ import { PLSubNode } from "./PLSubNode";
 import { PSTUtil } from "./PSTUtil.class";
 import * as zlib from 'zlib'
 
-export type ReadFile = (buffer: ArrayBuffer, offset: number, length: number, position: number) => Promise<number>;
+export type ReadFile = (
+  buffer: ArrayBuffer,
+  offset: number,
+  length: number,
+  position: number
+) => Promise<number>;
 
+export type Close = () => Promise<void>;
+
+/**
+ * Defines a callback based async file operation API.
+ */
 export interface ReadFileApi {
+  /**
+   * Defines read API like `fs.promises.readFile`.
+   */
   readFile: ReadFile,
-  close: () => Promise<void>,
+
+  /**
+   * Defines close API like `fs.promises.close`.
+   */
+  close: Close,
 }
 
 function surelyReader(readFile: ReadFile): ReadFile {

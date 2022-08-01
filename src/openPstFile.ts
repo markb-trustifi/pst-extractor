@@ -1,12 +1,19 @@
 import { PSTFile } from './PSTFile.class'
 import fs from 'fs'
-import { openLowPst } from './PLUtil'
+import { openLowPst, ReadFileApi } from './PLUtil'
 import { PropertyValueResolver } from './PropertyValueResolver'
 import { PropertyValueResolverV1 } from './PropertyValueResolverV1';
 import iconv from 'iconv-lite';
 import { processNameToIDMap } from './PAUtil';
 import { PSTOpts } from './PSTOpts';
 
+/**
+ * Open pst/ost file from os file path.
+ * 
+ * @param path os file path.
+ * @param opts options
+ * @returns 
+ */
 export async function openPstFile(
   path: string,
   opts?: PSTOpts
@@ -21,20 +28,39 @@ export async function openPstFile(
     return bytesRead;
   }
 
-  const lowPst = await openLowPst(
+  return await openPst(
     {
       readFile,
       close: async (): Promise<void> => {
         await file.close();
       },
-    }
+    },
+    opts
   );
+}
+
+/**
+ * Open pst/ost file using user defined callback.
+ * 
+ * @param api reader callback
+ * @param opts options
+ * @returns 
+ */
+export async function openPst(
+  api: ReadFileApi,
+  opts?: PSTOpts
+): Promise<PSTFile> {
+  const lowPst = await openLowPst(api);
+
+  const convertAnsiString = (opts && opts.convertAnsiString)
+    || (async (array) =>
+      iconv.decode(
+        Buffer.from(array),
+        (opts && opts.ansiEncoding) || "latin1"
+      ));
 
   const resolver = new PropertyValueResolverV1(
-    async (array) => iconv.decode(
-      Buffer.from(array),
-      (opts && opts.ansiEncoding) || "latin1"
-    )
+    convertAnsiString
   );
 
   const nodeMap = await processNameToIDMap(
