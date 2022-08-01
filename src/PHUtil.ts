@@ -4,25 +4,10 @@
 
 import { PHNodeHeap } from "./PHNodeHeap";
 import { PHNodeHeapReader } from "./PHNodeHeapReader";
-import { PLNodeReader } from "./PLNodeReader";
-import * as zlib from 'zlib'
+import { PLSubNode } from "./PLSubNode";
 
-const USE_MAIN_DATA = -1;
-
-export async function getHeapFromMain(node: PLNodeReader): Promise<PHNodeHeap> {
-  return getHeap(node, USE_MAIN_DATA);
-}
-
-export async function getHeapFromSub(node: PLNodeReader, subNodeId: number): Promise<PHNodeHeap> {
-  return getHeap(node, subNodeId);
-}
-
-async function getHeap(node: PLNodeReader, subNodeId: number): Promise<PHNodeHeap> {
-  const data_array = await willUnzip2(
-    (subNodeId === USE_MAIN_DATA)
-      ? [await node.getMainData()]
-      : await node.getSubDataArray(subNodeId)
-  );
+export async function getHeapFrom(node: PLSubNode): Promise<PHNodeHeap> {
+  const data_array = await node.getData();
   const data_chunks = new Map<number, ArrayBuffer>();
   let bClientSig = 0;
   let userRootHnid = 0;
@@ -41,7 +26,7 @@ async function getHeap(node: PLNodeReader, subNodeId: number): Promise<PHNodeHea
     userRootHnid,
 
     toString() {
-      return `subNodeId=${subNodeId} of ${node}`;
+      return `${node}`;
     },
 
     getReader() {
@@ -52,14 +37,18 @@ async function getHeap(node: PLNodeReader, subNodeId: number): Promise<PHNodeHea
           }
           else if (hnid & 0x1f) {
             // this is NID (node)
-            const data_array = await willUnzip2(await node.getSubDataArray(hnid));
+            const childNode = await node.getChildBy(hnid);
+            if (childNode === undefined) {
+              throw new Error(`childNode=0x${hnid.toString(16)} of ${node} not found`);
+            }
+            const data_array = await childNode.getData();
             return data_array;
           }
           else {
             // this is HID (heap)
             const data = data_chunks.get(hnid);
             if (data === undefined) {
-              throw new Error(`heap 0x${hnid.toString(16)} not found`);
+              throw new Error(`heap 0x${hnid.toString(16)} of ${node} not found`);
             }
             return [data];
           }
@@ -115,43 +104,4 @@ function load_page_header(
 
     data_chunks.set(0x20 * (1 + x) + 65536 * page_index, data.slice(from, to));
   }
-}
-
-export async function willUnzip2(array: ArrayBuffer[]): Promise<ArrayBuffer[]> {
-  if (array.length === 1) {
-    const data = array[0];
-    if (data.byteLength >= 4) {
-      array[0] = await willUnzip1(data);
-    }
-  }
-  return array;
-}
-
-export async function willUnzip1(data: ArrayBuffer): Promise<ArrayBuffer> {
-  if (data.byteLength >= 4) {
-    const view = new DataView(data);
-    if (view.getUint16(0, true) === 0x9c78) {
-      const arrayBuffer = await new Promise<ArrayBuffer>(
-        (resolve, reject) => zlib.unzip(
-          data,
-          (error, result) => {
-            if (error) {
-              reject(error);
-            }
-            else {
-              resolve(
-                result.buffer.slice(
-                  result.byteOffset,
-                  result.byteLength
-                )
-              );
-            }
-          }
-        )
-      );
-      return arrayBuffer;
-    }
-  }
-
-  return data;
 }

@@ -2,6 +2,7 @@
 import { OutlookProperties } from './OutlookProperties'
 import { PropertyFinder } from './PAUtil'
 import { PLNode } from './PLNode'
+import { PLSubNode } from './PLSubNode'
 import { PSTFile } from './PSTFile.class'
 import { PSTMessage } from './PSTMessage.class'
 import { PSTObject } from './PSTObject.class'
@@ -25,9 +26,10 @@ export class PSTAttachment extends PSTObject {
   constructor(
     pstFile: PSTFile,
     node: PLNode,
+    subNode: PLSubNode,
     propertyFinder: PropertyFinder
   ) {
-    super(pstFile, node, propertyFinder);
+    super(pstFile, node, subNode, propertyFinder);
   }
 
   /**

@@ -2,13 +2,13 @@
  * PST lower level node
  */
 
-import { PLNodeReader } from "./PLNodeReader";
+import { PLSubNode } from "./PLSubNode";
 
 export interface PLNode {
   nodeId: number;
   getParent(): PLNode | undefined;
   getChildren(): PLNode[];
-  getNodeReader(): PLNodeReader;
+  getSubNode(): PLSubNode;
 
   getSiblingNode(nidType: number): PLNode | undefined;
 }

@@ -12,10 +12,11 @@ import { PSTTask } from './PSTTask.class'
 import { PSTActivity } from './PSTActivity.class'
 import iconv from 'iconv-lite'
 import { PLNode } from './PLNode'
-import { getHeapFromMain } from './PHUtil'
+import { getHeapFrom } from './PHUtil'
 import { getPropertyContext } from './PropertyContextUtil'
 import { PropertyValueResolver } from './PropertyValueResolver'
 import { createPropertyFinder } from './PAUtil'
+import { PLSubNode } from './PLSubNode'
 
 /**
  * Utility functions for PST components
@@ -720,11 +721,10 @@ export class PSTUtil {
   public static async createAppropriatePSTMessageObject(
     theFile: PSTFile,
     node: PLNode,
+    subNode: PLSubNode,
     resolver: PropertyValueResolver
   ): Promise<PSTMessage> {
-    const heap = await getHeapFromMain(
-      node.getNodeReader()
-    );
+    const heap = await getHeapFrom(subNode);
     const pc = await getPropertyContext(
       heap,
       resolver
@@ -746,6 +746,7 @@ export class PSTUtil {
         const msg = new PSTMessage(
           theFile,
           node,
+          subNode,
           propertyFinder
         );
         // Log.debug1(msg.body);
@@ -765,6 +766,7 @@ export class PSTUtil {
         const apt = new PSTAppointment(
           theFile,
           node,
+          subNode,
           propertyFinder
         );
         // Log.debug1(JSON.stringify(msg, null, 2));
@@ -774,6 +776,7 @@ export class PSTUtil {
         const contact = new PSTContact(
           theFile,
           node,
+          subNode,
           propertyFinder
         );
         // Log.debug1(JSON.stringify(msg, null, 2));
@@ -783,6 +786,7 @@ export class PSTUtil {
         const task = new PSTTask(
           theFile,
           node,
+          subNode,
           propertyFinder
         );
         // Log.debug1(JSON.stringify(msg, null, 2));
@@ -792,6 +796,7 @@ export class PSTUtil {
         const activity = new PSTActivity(
           theFile,
           node,
+          subNode,
           propertyFinder
         );
         // Log.debug1(JSON.stringify(msg, null, 2));
@@ -802,6 +807,7 @@ export class PSTUtil {
         const rss = new PSTMessage(
           theFile,
           node,
+          subNode,
           propertyFinder
         );
         // Log.debug1(JSON.stringify(msg, null, 2));
@@ -812,6 +818,7 @@ export class PSTUtil {
         const dl = new PSTMessage(
           theFile,
           node,
+          subNode,
           propertyFinder
         );
         // Log.debug1(JSON.stringify(msg, null, 2));
@@ -823,6 +830,7 @@ export class PSTUtil {
         const oof = new PSTMessage(
           theFile,
           node,
+          subNode,
           propertyFinder
         );
         // Log.debug1(JSON.stringify(msg, null, 2));
@@ -832,6 +840,7 @@ export class PSTUtil {
         const meetReq = new PSTMessage(
           theFile,
           node,
+          subNode,
           propertyFinder
         );
         // Log.debug1(JSON.stringify(msg, null, 2));
@@ -841,6 +850,7 @@ export class PSTUtil {
         const ndr = new PSTMessage(
           theFile,
           node,
+          subNode,
           propertyFinder
         )
         // Log.debug1(JSON.stringify(msg, null, 2));
@@ -850,6 +860,7 @@ export class PSTUtil {
         const sticky = new PSTMessage(
           theFile,
           node,
+          subNode,
           propertyFinder
         )
         // Log.debug1(JSON.stringify(msg, null, 2));
@@ -861,6 +872,7 @@ export class PSTUtil {
         return new PSTMessage(
           theFile,
           node,
+          subNode,
           propertyFinder
         );
       case 'REPORT.IPM.Note.IPNNRN':
@@ -870,6 +882,7 @@ export class PSTUtil {
         return new PSTMessage(
           theFile,
           node,
+          subNode,
           propertyFinder
         );
       case 'IPM.Schedule.Meeting.Request':
@@ -879,6 +892,7 @@ export class PSTUtil {
         return new PSTMessage(
           theFile,
           node,
+          subNode,
           propertyFinder
         );
       case 'REPORT.IPM.Note.DR':
@@ -888,6 +902,7 @@ export class PSTUtil {
         return new PSTMessage(
           theFile,
           node,
+          subNode,
           propertyFinder
         );
       default:
@@ -899,6 +914,7 @@ export class PSTUtil {
     return new PSTMessage(
       theFile,
       node,
+      subNode,
       propertyFinder
     );
   }

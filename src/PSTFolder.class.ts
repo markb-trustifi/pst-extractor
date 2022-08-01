@@ -14,7 +14,8 @@ import { PSTFolderCollection } from './PSTFolderCollection'
 import { PSTItemCollection } from './PSTItemCollection'
 import { PSTMessage } from './PSTMessage.class'
 import { getTableContext } from './TableContextUtil'
-import { getHeapFromMain, getHeapFromSub } from './PHUtil'
+import { getHeapFrom } from './PHUtil'
+import { PLSubNode } from './PLSubNode'
 
 /**
  * Represents a folder in the PST File.  Allows you to access child folders or items.
@@ -38,9 +39,10 @@ export class PSTFolder extends PSTObject {
   constructor(
     pstFile: PSTFile,
     node: PLNode,
+    subNode: PLSubNode,
     propertyFinder: PropertyFinder
   ) {
-    super(pstFile, node, propertyFinder)
+    super(pstFile, node, subNode, propertyFinder)
   }
 
   /**
@@ -90,8 +92,8 @@ export class PSTFolder extends PSTObject {
       const contentsTableNode = this._node.getSiblingNode(PSTUtil.NID_TYPE_CONTENTS_TABLE);
 
       if (contentsTableNode !== undefined) {
-        const contentsTableNodeReader = contentsTableNode.getNodeReader();
-        const heap = await getHeapFromMain(
+        const contentsTableNodeReader = contentsTableNode.getSubNode();
+        const heap = await getHeapFrom(
           contentsTableNodeReader
         );
 
@@ -141,7 +143,10 @@ export class PSTFolder extends PSTObject {
         if (!(index in targets)) {
           throw new RangeError(`item index ${index} out of range`);
         }
-        return await this.pstFile.getItemOf(targets[index]);
+        return await this.pstFile.getItemOf(
+          targets[index],
+          targets[index].getSubNode()
+        );
       }
     );
   }

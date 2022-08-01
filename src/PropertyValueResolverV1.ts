@@ -1,6 +1,5 @@
 import Long from "long";
 import { PHNodeHeapReader } from "./PHNodeHeapReader";
-import { willUnzip2 } from "./PHUtil";
 import { splitPer } from "./PLMisc";
 import { readLong } from "./PLUtil";
 import { PropertyValueResolver } from "./PropertyValueResolver";
@@ -228,9 +227,7 @@ export class PropertyValueResolverV1 implements PropertyValueResolver {
 
     async function resolveHeap(hnid: number): Promise<ArrayBuffer | undefined> {
       return mixIntoOne(
-        await willUnzip2(
-          await heap.getHeapBuffers(hnid)
-        )
+        await heap.getHeapBuffers(hnid)
       );
     }
 

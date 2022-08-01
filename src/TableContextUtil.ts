@@ -88,7 +88,9 @@ export async function getTableContext(
 
   //const data2 = await reader.getHeapBuffers(offset2);
 
-  const rows_per_page = rows_pages[0].byteLength / rec_size;
+  const rows_per_page = (rows_pages.length !== 0)
+    ? rows_pages[0].byteLength / rec_size
+    : 0;
 
   function get_record(record_index: number): ArrayBuffer {
     const page_index = (record_index / rows_per_page) | 0;

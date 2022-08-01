@@ -5,8 +5,9 @@
 import Long from "long";
 import { PLNode } from "./PLNode";
 import { PLStore } from "./PLStore";
-import { PLNodeReader } from "./PLNodeReader";
+import { PLSubNode } from "./PLSubNode";
 import { PSTUtil } from "./PSTUtil.class";
+import * as zlib from 'zlib'
 
 export type ReadFile = (buffer: ArrayBuffer, offset: number, length: number, position: number) => Promise<number>;
 
@@ -25,12 +26,28 @@ function surelyReader(readFile: ReadFile): ReadFile {
   };
 }
 
+interface NodeFooter {
+  itemCount: number;
+  level: number;
+  thisId: Long;
+}
+
+interface XBlockPtr {
+  blockId: number;
+}
+
+interface XXBlockPtr {
+  blockId: number;
+}
+
 interface StoreTrait {
-  ReadSIBlockArray(view: DataView, offset: number): SIBlock[];
-  ReadSLBlockArray(view: DataView, offset: number): SLBlock[];
-  ReadNodePtrArray(view: DataView, offset: number, item_count: number): NodePtr[];
-  ReadTablePtrArray(view: DataView, offset: number, item_count: number): TablePtr[];
-  ReadBlockPtrArray(view: DataView, offset: number, item_count: number): BlockPtr[];
+  readXBlock(view: DataView, offset: number, itemCount: number): XBlockPtr[];
+  readXXBlock(view: DataView, offset: number, itemCount: number): XBlockPtr[];
+  readSIBlock(view: DataView, offset: number): SIBlock;
+  readSLBlock(view: DataView, offset: number): SLBlock;
+  readNodePtr(view: DataView, offset: number, footer: NodeFooter): NodePtr[];
+  readTablePtr(view: DataView, offset: number, footer: NodeFooter): TablePtr[];
+  readBlockPtr(view: DataView, offset: number, footer: NodeFooter): BlockPtr[];
   BACKLINK_OFFSET: number;
   LEVEL_INDICATOR_OFFSET: number;
   ITEM_COUNT_OFFSET: number;
@@ -42,6 +59,7 @@ interface StoreTrait {
   INDEX_POINTER_COUNT: number;
   INDEX_POINTER: number;
   BlockSize: number;
+  unzipHook: UnzipHook;
 }
 
 /**
@@ -67,14 +85,54 @@ export function readLong(view: DataView, offset: number): Long {
   );
 }
 
+type UnzipHook = (data: ArrayBuffer) => Promise<ArrayBuffer>;
+
+async function passThru1(data: ArrayBuffer): Promise<ArrayBuffer> {
+  return data;
+}
+
+/**
+ * 
+ * @internal
+ */
+async function willUnzip1(data: ArrayBuffer): Promise<ArrayBuffer> {
+  if (data.byteLength >= 4) {
+    const view = new DataView(data);
+    if (view.getUint16(0, true) === 0x9c78) {
+      const arrayBuffer = await new Promise<ArrayBuffer>(
+        (resolve, reject) => zlib.unzip(
+          data,
+          (error, result) => {
+            if (error) {
+              reject(error);
+            }
+            else {
+              resolve(
+                result.buffer.slice(
+                  result.byteOffset,
+                  result.byteLength
+                )
+              );
+            }
+          }
+        )
+      );
+      return arrayBuffer;
+    }
+  }
+
+  return data;
+}
+
+
 namespace ptr64 {
-  export function ReadBlockPtrArray(
+  export function readBlockPtr(
     view: DataView,
     offset: number,
-    item_count: number
+    footer: NodeFooter
   ): BlockPtr[] {
     const array: BlockPtr[] = [];
-    for (let x = 0; x < item_count; x++) {
+    for (let x = 0; x < footer.itemCount; x++) {
       const top = offset + 24 * x;
       const blockId = readNumber64(view, top + 0);
       array.push(
@@ -89,13 +147,13 @@ namespace ptr64 {
     return array;
   }
 
-  export function ReadTablePtrArray(
+  export function readTablePtr(
     view: DataView,
     offset: number,
-    item_count: number
+    footer: NodeFooter
   ): TablePtr[] {
     const array: TablePtr[] = [];
-    for (let x = 0; x < item_count; x++) {
+    for (let x = 0; x < footer.itemCount; x++) {
       const top = offset + 24 * x;
       array.push(
         {
@@ -108,13 +166,13 @@ namespace ptr64 {
     return array;
   }
 
-  export function ReadNodePtrArray(
+  export function readNodePtr(
     view: DataView,
     offset: number,
-    item_count: number
+    footer: NodeFooter
   ): NodePtr[] {
     const array: NodePtr[] = [];
-    for (let x = 0; x < item_count; x++) {
+    for (let x = 0; x < footer.itemCount; x++) {
       const top = offset + 32 * x;
       array.push(
         {
@@ -128,41 +186,79 @@ namespace ptr64 {
     return array;
   }
 
-  export function ReadSLBlockArray(
+  export function readSLBlock(
     view: DataView,
     offset: number
-  ): SLBlock[] {
+  ): SLBlock {
     const count = view.getUint16(offset + 2, true);
-    const array: SLBlock[] = [];
+    const entries: SLBlockEntry[] = [];
     for (let x = 0; x < count; x++) {
       const top = offset + 8 + 24 * x;
-      array.push(
+      entries.push(
         {
           nodeId: view.getUint32(top + 0, true),
           blockId: readNumber64(view, top + 8),
           subBlockId: readNumber64(view, top + 16),
-        } as SLBlock
+        } as SLBlockEntry
       );
     }
-    return array;
+    return {
+      entries
+    };
   }
 
-  export function ReadSIBlockArray(
+  export function readXBlock(
+    view: DataView,
+    offset: number,
+    itemCount: number
+  ): XBlockPtr[] {
+    const entries: XBlockPtr[] = [];
+    for (let x = 0; x < itemCount; x++) {
+      const top = offset + 8 + 8 * x;
+      entries.push(
+        {
+          blockId: readNumber64(view, top + 0),
+        } as XBlockPtr
+      );
+    }
+    return entries;
+  }
+
+  export function readXXBlock(
+    view: DataView,
+    offset: number,
+    itemCount: number
+  ): XXBlockPtr[] {
+    const entries: XXBlockPtr[] = [];
+    for (let x = 0; x < itemCount; x++) {
+      const top = offset + 8 + 8 * x;
+      entries.push(
+        {
+          blockId: readNumber64(view, top + 0),
+        } as XXBlockPtr
+      );
+    }
+    return entries;
+  }
+
+  export function readSIBlock(
     view: DataView,
     offset: number
-  ): SIBlock[] {
+  ): SIBlock {
     const count = view.getUint16(offset + 2, true);
-    const array: SIBlock[] = [];
+    const entries: SIBlockEntry[] = [];
     for (let x = 0; x < count; x++) {
       const top = offset + 8 + 24 * x;
-      array.push(
+      entries.push(
         {
           nodeId: view.getUint32(top + 0, true),
           blockId: readNumber64(view, top + 8),
-        } as SIBlock
+        } as SIBlockEntry
       );
     }
-    return array;
+    return {
+      entries
+    };
   }
 }
 
@@ -180,11 +276,14 @@ const ver0x17: StoreTrait = {
 
   ReadId: readLong,
 
-  ReadBlockPtrArray: ptr64.ReadBlockPtrArray,
-  ReadTablePtrArray: ptr64.ReadTablePtrArray,
-  ReadNodePtrArray: ptr64.ReadNodePtrArray,
-  ReadSLBlockArray: ptr64.ReadSLBlockArray,
-  ReadSIBlockArray: ptr64.ReadSIBlockArray,
+  readBlockPtr: ptr64.readBlockPtr,
+  readTablePtr: ptr64.readTablePtr,
+  readNodePtr: ptr64.readNodePtr,
+  readSLBlock: ptr64.readSLBlock,
+  readSIBlock: ptr64.readSIBlock,
+  readXBlock: ptr64.readXBlock,
+  readXXBlock: ptr64.readXXBlock,
+  unzipHook: passThru1,
 };
 
 const ver0x24: StoreTrait = {
@@ -201,22 +300,33 @@ const ver0x24: StoreTrait = {
 
   ReadId: readLong,
 
-  ReadBlockPtrArray: ptr64.ReadBlockPtrArray,
-  ReadTablePtrArray: ptr64.ReadTablePtrArray,
-  ReadNodePtrArray: ptr64.ReadNodePtrArray,
-  ReadSLBlockArray: ptr64.ReadSLBlockArray,
-  ReadSIBlockArray: ptr64.ReadSIBlockArray,
+  readBlockPtr: ptr64.readBlockPtr,
+  readTablePtr: ptr64.readTablePtr,
+  readNodePtr: ptr64.readNodePtr,
+  readSLBlock: ptr64.readSLBlock,
+  readSIBlock: ptr64.readSIBlock,
+  readXBlock: ptr64.readXBlock,
+  readXXBlock: ptr64.readXXBlock,
+  unzipHook: willUnzip1,
 };
 
-interface SIBlock {
+interface SIBlockEntry {
   nodeId: number;
   blockId: number;
 }
 
-interface SLBlock {
+interface SIBlock {
+  entries: SIBlockEntry[];
+}
+
+interface SLBlockEntry {
   nodeId: number;
   blockId: number;
   subBlockId: number;
+}
+
+interface SLBlock {
+  entries: SLBlockEntry[];
 }
 
 interface NodePtr {
@@ -238,6 +348,11 @@ interface BlockPtr {
   size: number;
 
   isData: boolean;
+}
+
+interface SubNodePair {
+  dataBlockId: number;
+  subBlockId: number;
 }
 
 export async function openLowPst(api: ReadFileApi): Promise<PLStore> {
@@ -280,10 +395,15 @@ export async function openLowPst(api: ReadFileApi): Promise<PLStore> {
     throw new Error('PSTFile::open PST is encrypted')
   }
 
+  const unzipHook = trait.unzipHook;
+
   async function pst_read_block_size(
-    buffer: ArrayBuffer, offset: number, position: Long, size: number, decrypt: boolean
-  ): Promise<void> {
-    await surelyRead(buffer, offset, size, position.toNumber());
+    position: Long,
+    size: number,
+    decrypt: boolean
+  ): Promise<ArrayBuffer> {
+    const buffer = new ArrayBuffer(size);
+    await surelyRead(buffer, 0, size, position.toNumber());
 
     if (decrypt) {
       if (false) { }
@@ -291,43 +411,46 @@ export async function openLowPst(api: ReadFileApi): Promise<PLStore> {
         // plain
       }
       else if (encryptionType === 1) {
-        PSTUtil.decodeArray(new Uint8Array(buffer, offset, size));
+        PSTUtil.decodeArray(new Uint8Array(buffer, 0, size));
       }
       else {
         throw new Error(`Unknown encryptionType ${encryptionType}`);
       }
     }
+
+    return await unzipHook(buffer);
   }
 
-  async function readBlock(block: BlockPtr, buffer: ArrayBuffer, offset: number, decrypt: boolean): Promise<void> {
-    await pst_read_block_size(
-      buffer,
-      offset,
-      block.offset,
-      block.size,
-      block.isData && decrypt
+  async function readBlock(block: BlockPtr, decrypt: boolean): Promise<ArrayBuffer> {
+    return await unzipHook(
+      await pst_read_block_size(
+        block.offset,
+        block.size,
+        block.isData && decrypt
+      )
     );
   }
 
   const blockMap = new Map<number, BlockPtr>;
   const nodeMap = new Map<number, NodePtr>;
 
-  async function load_block_tree(offset: Long, linku1: Long, start_val: Long): Promise<void> {
-    const buf = new ArrayBuffer(trait.BlockSize);
+  async function loadBlockTree(offset: Long, linku1: Long, start_val: Long): Promise<void> {
+    const buf = await pst_read_block_size(offset, trait.BlockSize, false);
     const view = new DataView(buf);
-    await pst_read_block_size(buf, 0, offset, buf.byteLength, false);
 
-    const item_count = view.getUint8(trait.ITEM_COUNT_OFFSET);
-    const level = view.getUint8(trait.LEVEL_INDICATOR_OFFSET);
+    const footer = {
+      itemCount: view.getUint8(trait.ITEM_COUNT_OFFSET),
+      level: view.getUint8(trait.LEVEL_INDICATOR_OFFSET),
+      thisId: trait.ReadId(view, trait.BACKLINK_OFFSET),
+    } as NodeFooter;
 
-    const thisId = trait.ReadId(view, trait.BACKLINK_OFFSET);
-    if (thisId.neq(linku1)) {
+    if (footer.thisId.neq(linku1)) {
       throw new Error("blah 1");
     }
 
-    if (level === 0) {
-      const array = trait.ReadBlockPtrArray(view, 0, item_count);
-      for (let x = 0; x < item_count; x++) {
+    if (footer.level === 0) {
+      const array = trait.readBlockPtr(view, 0, footer);
+      for (let x = 0; x < footer.itemCount; x++) {
         if (x === 0 && start_val.neq(0) && start_val.neq(array[x].blockId)) {
           throw new Error("blah 3");
         }
@@ -341,15 +464,15 @@ export async function openLowPst(api: ReadFileApi): Promise<PLStore> {
       }
     }
     else {
-      const array = trait.ReadTablePtrArray(view, 0, item_count);
-      for (let x = 0; x < item_count; x++) {
+      const array = trait.readTablePtr(view, 0, footer);
+      for (let x = 0; x < footer.itemCount; x++) {
         if (x === 0 && start_val.neq(0) && start_val.neq(array[x].start)) {
           throw new Error("blah 3");
         }
         if (array[x].start.eq(0)) {
           throw new Error("OHNO");
         }
-        await load_block_tree(
+        await loadBlockTree(
           array[x].offset,
           array[x].u1,
           array[x].start
@@ -361,31 +484,31 @@ export async function openLowPst(api: ReadFileApi): Promise<PLStore> {
   const block_btree_count = trait.ReadId(view, trait.INDEX_POINTER_COUNT);
   const block_btree = trait.ReadId(view, trait.INDEX_POINTER);
 
-  await load_block_tree(block_btree, block_btree_count, Long.ZERO);
+  await loadBlockTree(block_btree, block_btree_count, Long.ZERO);
 
-  async function load_node_tree(offset: Long, linku1: Long, start_val: number, prev_level: number): Promise<void> {
-    const buf = new ArrayBuffer(trait.BlockSize);
+  async function loadNodeTree(offset: Long, linku1: Long, start_val: number, prevLevel: number): Promise<void> {
+    const buf = await pst_read_block_size(offset, trait.BlockSize, false);
     const view = new DataView(buf);
 
-    await pst_read_block_size(buf, 0, offset, buf.byteLength, false);
+    const footer = {
+      itemCount: view.getUint8(trait.ITEM_COUNT_OFFSET),
+      level: view.getUint8(trait.LEVEL_INDICATOR_OFFSET),
+      thisId: trait.ReadId(view, trait.BACKLINK_OFFSET),
+    } as NodeFooter;
 
-    const item_count = view.getUint8(trait.ITEM_COUNT_OFFSET);
-    const level = view.getUint8(trait.LEVEL_INDICATOR_OFFSET);
-
-    if (prev_level !== Infinity) {
-      if (level !== prev_level - 1) {
+    if (prevLevel !== Infinity) {
+      if (footer.level !== prevLevel - 1) {
         throw new Error("ohno");
       }
     }
 
-    const thisId = trait.ReadId(view, trait.BACKLINK_OFFSET);
-    if (thisId.neq(linku1)) {
+    if (footer.thisId.neq(linku1)) {
       throw new Error("blah1");
     }
 
-    if (level === 0) {
-      const array = trait.ReadNodePtrArray(view, 0, item_count);
-      for (let x = 0; x < item_count; x++) {
+    if (footer.level === 0) {
+      const array = trait.readNodePtr(view, 0, footer);
+      for (let x = 0; x < footer.itemCount; x++) {
         if (x === 0 && start_val !== (0) && start_val !== (array[x].nodeId)) {
           throw new Error("blah 3");
         }
@@ -399,19 +522,19 @@ export async function openLowPst(api: ReadFileApi): Promise<PLStore> {
       }
     }
     else {
-      const array = trait.ReadTablePtrArray(view, 0, item_count);
-      for (let x = 0; x < item_count; x++) {
+      const array = trait.readTablePtr(view, 0, footer);
+      for (let x = 0; x < footer.itemCount; x++) {
         if (x === 0 && start_val !== (0) && array[x].start.neq(start_val)) {
           throw new Error("blah 3");
         }
         if (array[x].start.isZero()) {
           throw new Error("OHNO");
         }
-        await load_node_tree(
+        await loadNodeTree(
           array[x].offset,
           array[x].u1,
           array[x].start.toNumber(),
-          level
+          footer.level
         );
       }
     }
@@ -420,9 +543,9 @@ export async function openLowPst(api: ReadFileApi): Promise<PLStore> {
   const node_btree_count = trait.ReadId(view, trait.SECOND_POINTER_COUNT);
   const node_btree = trait.ReadId(view, trait.SECOND_POINTER);
 
-  await load_node_tree(node_btree, node_btree_count, 0x21, Infinity);
+  await loadNodeTree(node_btree, node_btree_count, 0x21, Infinity);
 
-  async function load_main_block_to(
+  async function loadMainBlockTo(
     blockId: number,
     consumer: (block: BlockPtr) => Promise<void>
   ): Promise<void> {
@@ -431,20 +554,53 @@ export async function openLowPst(api: ReadFileApi): Promise<PLStore> {
     }
     const block = blockMap.get(blockId);
     if (block === undefined) {
-      throw new Error("block not found");
+      throw new Error(`blockId=${blockId} not found`);
     }
     if (block.isData) {
       await consumer(block);
     }
     else {
-      // throw?
+      const buf = await readBlock(block, true);
+      const view = new DataView(buf);
+
+      const bType = view.getUint8(0);
+      if (bType !== 1) {
+        throw new Error("btype != 1");
+      }
+
+      const level = view.getUint8(1);
+      const itemCount = view.getUint16(2, true);
+
+      if (false) { }
+      else if (level === 1) {
+        //XBLOCK
+        const entries = trait.readXBlock(view, 0, itemCount);
+        for (let x = 0; x < entries.length; x++) {
+          await loadMainBlockTo(
+            entries[x].blockId,
+            consumer
+          );
+        }
+      }
+      else if (level === 2) {
+        //XXBLOCK
+        const entries = trait.readXXBlock(view, 0, itemCount);
+        for (let x = 0; x < entries.length; x++) {
+          await loadMainBlockTo(
+            entries[x].blockId,
+            consumer
+          );
+        }
+      }
+      else {
+        throw new Error(`Invalid level ${level}`);
+      }
     }
   }
 
-  async function load_sub_block_to(
+  async function readSubNode(
     blockId: number,
-    testSubNodeId: (subNodeId: number) => boolean,
-    consumer: (nodeId: number, block: BlockPtr) => Promise<void>
+    subNodeMap: Map<number, SubNodePair>
   ): Promise<void> {
     if (blockId === 0) {
       return;
@@ -452,13 +608,11 @@ export async function openLowPst(api: ReadFileApi): Promise<PLStore> {
 
     const block = blockMap.get(blockId);
     if (block === undefined) {
-      throw new Error("block not found");
+      throw new Error(`blockId ${blockId} not found`);
     }
 
-    const buf = new ArrayBuffer(block.size);
+    const buf = await readBlock(block, true);
     const view = new DataView(buf);
-
-    await readBlock(block, buf, 0, true);
 
     if (view.getUint8(0) !== 2) {
       throw new Error("btype != 2");
@@ -467,37 +621,27 @@ export async function openLowPst(api: ReadFileApi): Promise<PLStore> {
     const level = view.getUint8(1);
 
     if (level === 0) {
-      const array = trait.ReadSLBlockArray(view, 0);
-      for (let x = 0; x < array.length; x++) {
-        const sl_node_id = array[x].nodeId;
-        if (testSubNodeId(sl_node_id)) {
-          await load_main_block_to(
-            array[x].blockId,
-            async (block) => await consumer(sl_node_id, block)
-          );
-        }
-
-        await load_sub_block_to(
-          array[x].subBlockId,
-          testSubNodeId,
-          consumer
+      //SLBLOCK
+      const { entries } = trait.readSLBlock(view, 0);
+      for (let index = 0; index < entries.length; index++) {
+        subNodeMap.set(
+          entries[index].nodeId,
+          {
+            dataBlockId: entries[index].blockId,
+            subBlockId: entries[index].subBlockId,
+          } as SubNodePair
         );
       }
     }
     else {
-      const array = trait.ReadSIBlockArray(view, 0);
-      for (let x = 0; x < array.length; x++) {
-        const si_node_id = array[x].nodeId;
-        if (testSubNodeId(si_node_id)) {
-          const block = blockMap.get(array[x].blockId);
-          if (block === undefined) {
-            throw new Error("block not found");
-          }
-          if (!block.isData) {
-            throw new Error("must be data");
-          }
-          await consumer(si_node_id, block);
-        }
+      //SIBLOCK
+      const struc = trait.readSIBlock(view, 0);
+      const { entries } = struc;
+      for (let index = 0; index < entries.length; index++) {
+        await readSubNode(
+          entries[index].blockId,
+          subNodeMap
+        );
       }
     }
   }
@@ -514,16 +658,15 @@ export async function openLowPst(api: ReadFileApi): Promise<PLStore> {
       return undefined;
     }
 
-    const { blockId, subBlockId } = ptr;
+    const { blockId } = ptr;
 
-    async function getMainData(): Promise<ArrayBuffer> {
+    async function getData(): Promise<ArrayBuffer> {
       const array: ArrayBuffer[] = [];
 
-      await load_main_block_to(
+      await loadMainBlockTo(
         blockId,
         async (block): Promise<void> => {
-          const buf = new ArrayBuffer(block.size);
-          await readBlock(block, buf, 0, true);
+          const buf = await readBlock(block, true);
           array.push(buf);
         }
       );
@@ -536,32 +679,83 @@ export async function openLowPst(api: ReadFileApi): Promise<PLStore> {
       }
     }
 
-    async function getSubDataArray(subNodeId: number): Promise<ArrayBuffer[]> {
-      const array: ArrayBuffer[] = [];
-      await load_sub_block_to(
-        subBlockId,
-        it => {
-          return it === subNodeId
-        },
-        async (nodeId: number, block: BlockPtr): Promise<void> => {
-          const buf = new ArrayBuffer(block.size);
-          await readBlock(block, buf, 0, true);
-          array.push(buf);
+    async function getDataOf(blockId: number): Promise<ArrayBuffer[]> {
+      const array = [] as ArrayBuffer[];
+      await loadMainBlockTo(
+        blockId,
+        async (block) => {
+          array.push(await readBlock(block, true));
         }
       );
       return array;
     }
 
-    async function numSubDataArray(subNodeId: number): Promise<number> {
-      let num = 0;
-      await load_sub_block_to(
-        subBlockId,
-        it => it === subNodeId,
-        async (nodeId: number, block: BlockPtr): Promise<void> => {
-          num += 1;
-        }
+    async function getChildOf(
+      blockId: number,
+      childNodeId: number,
+      parentToString: string
+    ): Promise<PLSubNode> {
+      const block = blockMap.get(blockId);
+      if (block === undefined) {
+        throw new Error(
+          `blockId=${blockId}`
+          + ` for childNodeId=0x${childNodeId.toString(16)}`
+          + ` of ${parentToString}`
+          + ` not found`
+        );
+      }
+
+      const subNodeMap = new Map<number, SubNodePair>();
+
+      await readSubNode(
+        block.blockId,
+        subNodeMap
       );
-      return num;
+
+      const subNode = subNodeMap.get(childNodeId);
+      if (subNode === undefined) {
+        throw new Error(
+          `childNodeId=0x${childNodeId.toString(16)}`
+          + `,nidType=0x${(childNodeId & 0x1f).toString(16)}`
+          + ` not found`
+        );
+      }
+
+      const thisToString =
+        `childNodeId=0x${childNodeId.toString(16)}`
+        + `,nidType=0x${(childNodeId & 0x1f).toString(16)}`
+        + ` of ${parentToString}`;
+
+      return {
+        nodeId: childNodeId,
+        getChildBy: async (childNodeId) => await getChildOf(
+          subNode.subBlockId,
+          childNodeId,
+          thisToString
+        ),
+        getData: async () => await getDataOf(subNode.dataBlockId),
+        toString: () => thisToString,
+      } as PLSubNode;
+    }
+
+    function getSubNodeOf(nodeId: number): PLSubNode {
+      const node = nodeMap.get(nodeId);
+      if (node === undefined) {
+        throw new Error(`nodeId=${nodeId} not found`);
+      }
+
+      const thisToString = `subNode of nodeId=${nodeId},nidType=${nodeId & 0x1f}`;
+
+      return {
+        nodeId: nodeId,
+        getChildBy: async (childNodeId) => getChildOf(
+          node.subBlockId,
+          childNodeId,
+          thisToString
+        ),
+        getData: async () => await getDataOf(node.blockId),
+        toString: () => thisToString,
+      } as PLSubNode;
     }
 
     return {
@@ -569,14 +763,9 @@ export async function openLowPst(api: ReadFileApi): Promise<PLStore> {
       getParent: () => getOneNodeBy((ptr.parentNodeId)),
       getChildren: () => Array.from(nodeMap.values())
         .filter(it => it.parentNodeId === ptr.nodeId && it.nodeId !== ptr.nodeId)
-        .map(it => getOneNodeBy((it.nodeId)))
+        .map(it => getOneNodeBy(it.nodeId))
         .filter(it => it !== undefined),
-      getNodeReader: () => ({
-        getMainData,
-        getSubDataArray,
-        numSubDataArray,
-        toString: () => `nodeId=${nodeId},nidType=${nodeId & 0x1f}`,
-      } as PLNodeReader),
+      getSubNode: () => getSubNodeOf(ptr.nodeId),
       getSiblingNode: (nidType: number) => getOneNodeBy((nodeId & ~0x1f) | (nidType & 0x1f)),
     } as PLNode;
   };

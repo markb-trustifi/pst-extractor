@@ -1,6 +1,7 @@
 import { DescriptorIndexNode } from './DescriptorIndexNode.class'
 import { PropertyFinder } from './PAUtil'
 import { PLNode } from './PLNode'
+import { PLSubNode } from './PLSubNode'
 import { PSTFile } from './PSTFile.class'
 import { PSTObject } from './PSTObject.class'
 
@@ -15,8 +16,9 @@ export class PSTMessageStore extends PSTObject {
   constructor(
     pstFile: PSTFile,
     node: PLNode,
+    subNode: PLSubNode,
     propertyFinder: PropertyFinder
   ) {
-    super(pstFile, node, propertyFinder)
+    super(pstFile, node, subNode, propertyFinder)
   }
 }

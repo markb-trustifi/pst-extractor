@@ -4,7 +4,7 @@
 
 import { msftUuidStringify } from "./msftUuidStringify";
 import { NodeMap } from "./NodeMap.class"
-import { getHeapFromMain, willUnzip1 } from "./PHUtil";
+import { getHeapFrom } from "./PHUtil";
 import { PLNode } from "./PLNode"
 import { Property } from "./Property";
 import { getPropertyContext } from "./PropertyContextUtil";
@@ -42,9 +42,9 @@ export async function processNameToIDMap(
   nameToIdMapDescriptorNode: PLNode,
   resolver: PropertyValueResolver
 ): Promise<NodeMap> {
-  const reader = nameToIdMapDescriptorNode.getNodeReader();
+  const subNode = nameToIdMapDescriptorNode.getSubNode();
   const bcTable = (await (await getPropertyContext(
-    await getHeapFromMain(reader),
+    await getHeapFrom(subNode),
     resolver
   ))
     .list());

@@ -1,5 +1,4 @@
 import { openLowPst } from '../PLUtil';
-import { getHeapFromMain, getHeapFromSub } from '../PHUtil';
 import { getPropertyContext } from '../PropertyContextUtil';
 import { getTableContext } from '../TableContextUtil';
 import { PropertyValueResolverV1 } from '../PropertyValueResolverV1';
@@ -7,6 +6,7 @@ import { processNameToIDMap } from '../PAUtil';
 import { openPstFile, PSTFolder } from '../index';
 import { decode } from 'iconv-lite';
 import fs from 'fs';
+import { getHeapFrom } from '../PHUtil';
 const resolve = require('path').resolve;
 
 // cls & yarn test:unit --testMatch "**/PLUtil.spec.ts" --coverage false
@@ -59,7 +59,7 @@ describe('PLUtil/PHUtil tests', () => {
 
       const rootNode = await lowPst.getOneNodeByOrError(290);
 
-      const heap = await getHeapFromMain(rootNode.getNodeReader());
+      const heap = await getHeapFrom(rootNode.getSubNode());
       const pcBufs = await heap.getReader().getHeapBuffers(heap.userRootHnid);
       //console.log({ pcBufs });
 
@@ -71,7 +71,7 @@ describe('PLUtil/PHUtil tests', () => {
       {
         const nameToIdMapDescriptorNode = await lowPst.getOneNodeByOrError(97);
         //console.log({ nameToIdMapDescriptorNode });
-        const nameToIdMapHeap = await getHeapFromMain(nameToIdMapDescriptorNode.getNodeReader());
+        const nameToIdMapHeap = await getHeapFrom(nameToIdMapDescriptorNode.getSubNode());
         //console.log({ nameToIdMap });
         const more = await getPropertyContext(
           nameToIdMapHeap,

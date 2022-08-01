@@ -14,11 +14,12 @@ import { PLNode } from './PLNode'
 import { PropertyValueResolver } from './PropertyValueResolver'
 import { createPropertyFinder, PropertyFinder } from './PAUtil'
 import { PSTAttachmentCollection } from './PSTAttachmentCollection'
-import { getHeapFromSub } from './PHUtil'
+import { getHeapFrom } from './PHUtil'
 import { getTableContext } from './TableContextUtil'
 import { KeyedDelay } from './KeyedDelay'
 import { PSTRecipientCollection } from './PSTRecipientCollection'
 import { getPropertyContext } from './PropertyContextUtil'
+import { PLSubNode } from './PLSubNode'
 
 enum PidTagMessageFlags {
   MSGFLAG_READ = 0x01,
@@ -52,9 +53,10 @@ export class PSTMessage extends PSTObject {
   constructor(
     pstFile: PSTFile,
     node: PLNode,
+    subNode: PLSubNode,
     propertyFinder: PropertyFinder
   ) {
-    super(pstFile, node, propertyFinder);
+    super(pstFile, node, subNode, propertyFinder);
   }
 
   /*
@@ -187,13 +189,12 @@ export class PSTMessage extends PSTObject {
 
   async recipientCollection(): Promise<PSTRecipientCollection> {
     try {
-      const reader = this._node.getNodeReader();
+      const subNode = this._node.getSubNode();
 
-      if (await reader.numSubDataArray(0x0692) === 1) {
-        const heap = await getHeapFromSub(
-          reader,
-          0x0692
-        );
+      const childNode = await subNode.getChildBy(0x692);
+
+      if (childNode !== undefined) {
+        const heap = await getHeapFrom(childNode);
         const tc = await getTableContext(
           heap,
           this.pstFile.resolver
@@ -211,6 +212,7 @@ export class PSTMessage extends PSTObject {
             return new PSTRecipient(
               this.pstFile,
               this._node,
+              this._subNode,
               propertyFinder
             );
           }
@@ -392,13 +394,10 @@ export class PSTMessage extends PSTObject {
    */
   async attachmentCollection(): Promise<PSTAttachmentCollection> {
     try {
-      const reader = this._node.getNodeReader();
+      const childNode = await this._subNode.getChildBy(0x671);
 
-      if (await reader.numSubDataArray(0x0671) === 1) {
-        const heap = await getHeapFromSub(
-          reader,
-          0x0671
-        );
+      if (childNode !== undefined) {
+        const heap = await getHeapFrom(childNode);
         const tc = await getTableContext(
           heap,
           this.pstFile.resolver
@@ -413,6 +412,7 @@ export class PSTMessage extends PSTObject {
               throw new RangeError(`attachment index ${index} out of range`);
             }
 
+
             // xxx1 is for properties in one row in TableContext.
             const list1 = await rows[index].list();
             const propertyFinder1 = createPropertyFinder(list1);
@@ -426,10 +426,12 @@ export class PSTMessage extends PSTObject {
             }
 
             // xxx2 is for properties in PropertyContext in dedicated subData
-            const heap2 = await getHeapFromSub(
-              reader,
-              ltpRowId.value
-            );
+            const child2 = await this._subNode.getChildBy(ltpRowId.value);
+            if (child2 === undefined) {
+              throw new Error();
+            }
+
+            const heap2 = await getHeapFrom(child2);
 
             const pc2 = await getPropertyContext(
               heap2,
@@ -443,6 +445,7 @@ export class PSTMessage extends PSTObject {
             return new PSTAttachment(
               this.pstFile,
               this._node,
+              this._subNode,
               propertyFinder2
             );
           }

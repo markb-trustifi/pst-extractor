@@ -4,6 +4,7 @@ import { PSTMessage } from './PSTMessage.class'
 import { OutlookProperties } from './OutlookProperties'
 import { PLNode } from './PLNode'
 import { PropertyFinder } from './PAUtil'
+import { PLSubNode } from './PLSubNode'
 
 export class PSTActivity extends PSTMessage {
   /**
@@ -17,9 +18,10 @@ export class PSTActivity extends PSTMessage {
   constructor(
     pstFile: PSTFile,
     node: PLNode,
+    subNode: PLSubNode,
     propertyFinder: PropertyFinder
   ) {
-    super(pstFile, node, propertyFinder);
+    super(pstFile, node, subNode, propertyFinder);
   }
 
   /**

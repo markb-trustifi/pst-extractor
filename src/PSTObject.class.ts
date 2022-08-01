@@ -3,11 +3,13 @@ import Long from 'long'
 import { OutlookProperties } from './OutlookProperties'
 import { PropertyFinder } from './PAUtil'
 import { PLNode } from './PLNode'
+import { PLSubNode } from './PLSubNode'
 import { PSTFile } from './PSTFile.class'
 
 export abstract class PSTObject {
   protected pstFile: PSTFile
   protected _node: PLNode
+  protected _subNode: PLSubNode
   protected _propertyFinder: PropertyFinder
 
   /**
@@ -17,10 +19,15 @@ export abstract class PSTObject {
   constructor(
     pstFile: PSTFile,
     node: PLNode,
+    subNode: PLSubNode,
     propertyFinder: PropertyFinder
   ) {
+    if (!propertyFinder) {
+      console.trace("propertyFinder not defined");
+    }
     this.pstFile = pstFile
     this._node = node;
+    this._subNode = subNode;
     this._propertyFinder = propertyFinder;
   }
 

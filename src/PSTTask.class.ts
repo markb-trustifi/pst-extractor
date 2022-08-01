@@ -5,6 +5,7 @@ import { PSTFile } from './PSTFile.class'
 import { RecurrencePattern } from './RecurrencePattern.class'
 import { PLNode } from './PLNode'
 import { PropertyFinder } from './PAUtil'
+import { PLSubNode } from './PLSubNode'
 
 export class PSTTask extends PSTMessage {
   /**
@@ -17,9 +18,10 @@ export class PSTTask extends PSTMessage {
   constructor(
     pstFile: PSTFile,
     node: PLNode,
+    subNode: PLSubNode,
     propertyFinder: PropertyFinder
   ) {
-    super(pstFile, node, propertyFinder);
+    super(pstFile, node, subNode, propertyFinder);
   }
 
   /**

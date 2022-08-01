@@ -6,13 +6,14 @@ import { NodeMap } from './NodeMap.class'
 import { PSTOpts } from './PSTOpts'
 import { createPropertyFinder, PropertyFinder } from './PAUtil'
 import { PLStore } from './PLStore'
-import { getHeapFromMain } from './PHUtil'
+import { getHeapFrom } from './PHUtil'
 import { getPropertyContext } from './PropertyContextUtil'
 import { PropertyValueResolverV1 } from './PropertyValueResolverV1'
 import iconv from 'iconv-lite'
 import { PLNode } from './PLNode'
 import { PSTMessage } from './PSTMessage.class'
 import { PropertyValueResolver } from './PropertyValueResolver'
+import { PLSubNode } from './PLSubNode'
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 
 export class PSTFile {
@@ -160,9 +161,7 @@ export class PSTFile {
     if (node === undefined) {
       throw new Error("MESSAGE_STORE_DESCRIPTOR not found");
     }
-    const heap = await getHeapFromMain(
-      node.getNodeReader()
-    );
+    const heap = await getHeapFrom(node.getSubNode());
     const pc = await getPropertyContext(
       heap,
       this._resolver
@@ -177,16 +176,19 @@ export class PSTFile {
    * @internal
    */
   async getFolderOf(node: PLNode): Promise<PSTFolder> {
-    const heap = await getHeapFromMain(
-      node.getNodeReader()
-    );
+    const heap = await getHeapFrom(node.getSubNode());
     const pc = await getPropertyContext(
       heap,
       this._resolver
     );
     const propertyFinder = createPropertyFinder(await pc.list());
 
-    const output: PSTFolder = new PSTFolder(this, node, propertyFinder);
+    const output: PSTFolder = new PSTFolder(
+      this,
+      node,
+      node.getSubNode(),
+      propertyFinder
+    );
     return output
   }
 
@@ -194,10 +196,11 @@ export class PSTFile {
    * 
    * @internal
    */
-  async getItemOf(node: PLNode): Promise<PSTMessage> {
+  async getItemOf(node: PLNode, subNode: PLSubNode): Promise<PSTMessage> {
     return await PSTUtil.createAppropriatePSTMessageObject(
       this,
       node,
+      subNode,
       this._resolver
     );
   }
