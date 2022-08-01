@@ -9,3 +9,8 @@ contributing.md
 PST file format.pdf
 *.spec.ts
 *.log
+/doc
+/docs
+/example
+/full.diff
+/junit.xml

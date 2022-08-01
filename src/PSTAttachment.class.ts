@@ -121,6 +121,22 @@ export class PSTAttachment extends PSTObject {
   }
 
   /**
+   * Get attachment content as binary data
+   */
+  public get fileData(): ArrayBuffer | undefined {
+    const attachmentDataObject = this._propertyFinder.findByKey(
+      OutlookProperties.PR_ATTACH_DATA_BIN
+    );
+    if (attachmentDataObject !== undefined) {
+      const { value } = attachmentDataObject;
+      if (value instanceof ArrayBuffer) {
+        return value;
+      }
+    }
+    return undefined;
+  }
+
+  /**
    * Size of the attachment file itself.
    * https://msdn.microsoft.com/en-us/library/gg154634(v=winembedded.70).aspx
    * @readonly

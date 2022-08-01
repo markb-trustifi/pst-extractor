@@ -254,9 +254,9 @@ export class PSTFile {
   private getRootProvider(): RootProvider {
     return {
       resolver: this._resolver,
-      getNameToIdMapItem: this.getNameToIdMapItem,
-      getItemOf: this.getItemOf,
-      getFolderOf: this.getFolderOf,
+      getNameToIdMapItem: this.getNameToIdMapItem.bind(this),
+      getItemOf: this.getItemOf.bind(this),
+      getFolderOf: this.getFolderOf.bind(this),
     } as RootProvider
   }
 

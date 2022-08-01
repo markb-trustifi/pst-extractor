@@ -18,7 +18,6 @@ export async function getPropertyContext(
   if (heap.bClientSig !== bTypePC) {
     throw new Error("must be bTypePC");
   }
-
   const reader = heap.getReader();
 
   const header_data_array = await reader.getHeapBuffers(heap.userRootHnid);
