@@ -1,0 +1,104 @@
+{
+  "name": "@hiraokahypertools/pst-extractor",
+  "version": "0.1.0",
+  "description": "Extract objects from MS Outlook/Exchange PST files",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "engines": {
+    "node": ">=10"
+  },
+  "scripts": {
+    "prebuild": "rimraf dist",
+    "build": "tsc",
+    "test": "run-s test:unit test:build",
+    "test:build": "run-s build",
+    "test:unit": "cross-env CI=1 jest --coverage --reporters=default --reporters=jest-junit"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/HiraokaHyperTools/pst-extractor.git"
+  },
+  "author": "kenjiuno",
+  "contributors": [
+    {
+      "name": "Ed Pfromer",
+      "email": "epfromer@gmail.com"
+    }
+  ],
+  "license": "MIT",
+  "devDependencies": {
+    "@babel/core": "^7.17.8",
+    "@babel/plugin-proposal-class-properties": "^7.16.7",
+    "@babel/preset-env": "^7.16.11",
+    "@babel/preset-typescript": "^7.16.7",
+    "@types/debug": "4.1.7",
+    "@types/jest": "^27.4.1",
+    "@types/long": "^4.0.1",
+    "@types/node": "^17.0.23",
+    "@typescript-eslint/eslint-plugin": "^5.18.0",
+    "@typescript-eslint/parser": "^5.18.0",
+    "babel-eslint": "^10.1.0",
+    "babel-jest": "^27.5.1",
+    "cross-env": "^7.0.3",
+    "debug": "^4.3.4",
+    "eslint": "^8.12.0",
+    "eslint-config-prettier": "^8.5.0",
+    "eslint-config-standard": "^16.0.3",
+    "eslint-plugin-import": "^2.26.0",
+    "eslint-plugin-node": "^11.1.0",
+    "eslint-plugin-prettier": "^4.0.0",
+    "eslint-plugin-promise": "^6.0.0",
+    "eslint-plugin-standard": "^5.0.0",
+    "jest": "^27.5.1",
+    "jest-junit": "^13.1.0",
+    "npm-run-all": "^4.1.5",
+    "prettier": "^2.6.2",
+    "rimraf": "^3.0.2",
+    "source-map-support": "^0.5.21",
+    "ts-node": "^10.7.0",
+    "typedoc": "^0.23.10",
+    "typescript": "^4.6.3"
+  },
+  "dependencies": {
+    "iconv-lite": "^0.6.3",
+    "long": "^5.2.0"
+  },
+  "eslintConfig": {
+    "extends": [
+      "plugin:@typescript-eslint/recommended",
+      "prettier/@typescript-eslint",
+      "plugin:prettier/recommended"
+    ],
+    "parserOptions": {
+      "ecmaVersion": 2018,
+      "sourceType": "module"
+    }
+  },
+  "prettier": {
+    "semi": false,
+    "singleQuote": true,
+    "endOfLine": "auto"
+  },
+  "babel": {
+    "presets": [
+      "@babel/preset-env",
+      "@babel/preset-typescript"
+    ],
+    "plugins": [
+      "@babel/plugin-proposal-class-properties"
+    ]
+  },
+  "jest": {
+    "testMatch": [
+      "<rootDir>/src/__tests__/**/*.spec.ts"
+    ],
+    "collectCoverageFrom": [
+      "<rootDir>/src/**/*.ts",
+      "!<rootDir>/src/__tests__/**/*.*"
+    ],
+    "coverageReporters": [
+      "text",
+      "cobertura"
+    ]
+  }
+}

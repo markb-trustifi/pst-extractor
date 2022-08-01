@@ -1,0 +1,404 @@
+ src/DescriptorIndexNode.class.ts | 22 ++++++++++++++++++++++
+ src/OffsetIndexItem.class.ts     |  3 +++
+ src/PSTAttachment.class.ts       | 27 +++++++++++++++------------
+ src/PSTDescriptorItem.class.ts   | 14 ++++++++++++++
+ src/PSTFile.class.ts             | 16 +++++++++-------
+ src/PSTMessage.class.ts          | 11 ++++++-----
+ src/PSTObject.class.ts           |  3 +++
+ src/PSTTable7C.class.ts          |  5 +++++
+ src/PSTTableBC.class.ts          |  5 +++++
+ src/PSTTableItem.class.ts        | 20 ++++++++++++++++++++
+ 10 files changed, 102 insertions(+), 24 deletions(-)
+
+diff --git a/src/DescriptorIndexNode.class.ts b/src/DescriptorIndexNode.class.ts
+index 41fd500..051f387 100644
+--- a/src/DescriptorIndexNode.class.ts
++++ b/src/DescriptorIndexNode.class.ts
+@@ -4,24 +4,46 @@ import { PSTUtil } from './PSTUtil.class'
+ 
+ // DescriptorIndexNode is a leaf item from the Descriptor index b-tree
+ // It is like a pointer to an element in the PST file, everything has one...
++
++/**
++ * NodePtr
++ * 
++ * @see [[MS-PST]: NBTENTRY (Leaf NBT Entry) | Microsoft Docs](https://docs.microsoft.com/en-us/openspecs/office_file_formats/ms-pst/28fb2116-0998-4485-9844-9711b95603ba)
++ */
+ export class DescriptorIndexNode {
+   private _descriptorIdentifier: number
+   itemType = 0
++
++  /**
++   * nodeId
++   */
+   public get descriptorIdentifier(): number {
+     return this._descriptorIdentifier
+   }
+ 
+   private _parentDescriptorIndexIdentifier: number
++
++  /**
++   * parentNodeId
++   */
+   public get parentDescriptorIndexIdentifier(): number {
+     return this._parentDescriptorIndexIdentifier
+   }
+ 
+   private _localDescriptorsOffsetIndexIdentifier: Long
++
++  /**
++   * subNodeId
++   */
+   public get localDescriptorsOffsetIndexIdentifier(): Long {
+     return this._localDescriptorsOffsetIndexIdentifier
+   }
+ 
+   private _dataOffsetIndexIdentifier: Long
++
++  /**
++   * blockId
++   */
+   public get dataOffsetIndexIdentifier(): Long {
+     return this._dataOffsetIndexIdentifier
+   }
+diff --git a/src/OffsetIndexItem.class.ts b/src/OffsetIndexItem.class.ts
+index c51b2b9..85691b4 100644
+--- a/src/OffsetIndexItem.class.ts
++++ b/src/OffsetIndexItem.class.ts
+@@ -3,6 +3,9 @@ import Long from 'long'
+ import { PSTFile } from './PSTFile.class'
+ import { PSTUtil } from './PSTUtil.class'
+ 
++/**
++ * Block
++ */
+ export class OffsetIndexItem {
+   private _indexIdentifier: Long
+   public get indexIdentifier(): Long {
+diff --git a/src/PSTAttachment.class.ts b/src/PSTAttachment.class.ts
+index 92aec24..b0d30a3 100644
+--- a/src/PSTAttachment.class.ts
++++ b/src/PSTAttachment.class.ts
+@@ -1,5 +1,6 @@
+ /* eslint-disable @typescript-eslint/no-explicit-any */
+ import Long from 'long'
++import { DescriptorIndexNode } from './DescriptorIndexNode.class'
+ import { OutlookProperties } from './OutlookProperties'
+ import { PSTDescriptorItem } from './PSTDescriptorItem.class'
+ import { PSTFile } from './PSTFile.class'
+@@ -29,12 +30,13 @@ export class PSTAttachment extends PSTObject {
+   constructor(
+     pstFile: PSTFile,
+     table: PSTTableBC,
+-    localDescriptorItems: Map<number, PSTDescriptorItem>
++    localDescriptorItems: Map<number, PSTDescriptorItem>,
++    descriptorIndexNode: DescriptorIndexNode | null
+   ) {
+-    super(pstFile)
++    super(pstFile, descriptorIndexNode || undefined)
+ 
+     // pre-populate folder object with values
+-    this.prePopulate(null, table, localDescriptorItems)
++    this.prePopulate(descriptorIndexNode, table, localDescriptorItems)
+   }
+ 
+   /**
+@@ -78,6 +80,7 @@ export class PSTAttachment extends PSTObject {
+    */
+   public get embeddedPSTMessage(): PSTMessage | null {
+     let pstNodeInputStream: PSTNodeInputStream | null = null
++    let localDescriptorItems: Map<number, PSTDescriptorItem> | null = this.localDescriptorItems
+     if (this.getIntItem(0x3705) == PSTAttachment.ATTACHMENT_METHOD_EMBEDDED) {
+       const item = this.pstTableItems ? this.pstTableItems.get(0x3701) : null
+       if (item && item.entryValueType == 0x0102) {
+@@ -107,7 +110,7 @@ export class PSTAttachment extends PSTObject {
+             descriptorItemNested &&
+             descriptorItemNested.subNodeOffsetIndexIdentifier > 0
+           ) {
+-            this.localDescriptorItems = this.pstFile.getPSTDescriptorItems(
++            localDescriptorItems = this.pstFile.getPSTDescriptorItems(
+               Long.fromNumber(descriptorItemNested.subNodeOffsetIndexIdentifier)
+             )
+           }
+@@ -120,18 +123,18 @@ export class PSTAttachment extends PSTObject {
+ 
+       try {
+         const attachmentTable: PSTTableBC = new PSTTableBC(pstNodeInputStream)
+-        if (this.localDescriptorItems && this.descriptorIndexNode) {
++        if (localDescriptorItems && this.descriptorIndexNode) {
+           return PSTUtil.createAppropriatePSTMessageObject(
+             this.pstFile,
+             this.descriptorIndexNode,
+             attachmentTable,
+-            this.localDescriptorItems
++            localDescriptorItems
+           )
+         }
+       } catch (err) {
+         console.error(
+           'PSTAttachment::embeddedPSTMessage createAppropriatePSTMessageObject failed\n' +
+-            err
++          err
+         )
+         throw err
+       }
+@@ -155,8 +158,8 @@ export class PSTAttachment extends PSTObject {
+     } else if (attachmentDataObject.isExternalValueReference) {
+       const descriptorItemNested = this.localDescriptorItems
+         ? this.localDescriptorItems.get(
+-            attachmentDataObject.entryValueReference
+-          )
++          attachmentDataObject.entryValueReference
++        )
+         : null
+       if (descriptorItemNested) {
+         return new PSTNodeInputStream(this.pstFile, descriptorItemNested)
+@@ -186,13 +189,13 @@ export class PSTAttachment extends PSTObject {
+     if (attachmentDataObject && attachmentDataObject.isExternalValueReference) {
+       const descriptorItemNested = this.localDescriptorItems
+         ? this.localDescriptorItems.get(
+-            attachmentDataObject.entryValueReference
+-          )
++          attachmentDataObject.entryValueReference
++        )
+         : null
+       if (descriptorItemNested == null) {
+         throw new Error(
+           'PSTAttachment::filesize missing attachment descriptor item for: ' +
+-            attachmentDataObject.entryValueReference
++          attachmentDataObject.entryValueReference
+         )
+       }
+       return descriptorItemNested.dataSize
+diff --git a/src/PSTDescriptorItem.class.ts b/src/PSTDescriptorItem.class.ts
+index 56a6ac4..8018681 100644
+--- a/src/PSTDescriptorItem.class.ts
++++ b/src/PSTDescriptorItem.class.ts
+@@ -4,21 +4,35 @@ import { PSTNodeInputStream } from './PSTNodeInputStream.class'
+ import { PSTUtil } from './PSTUtil.class'
+ import { PSTFile } from './PSTFile.class'
+ 
++/**
++ * TablePtr
++ */
+ export class PSTDescriptorItem {
+   private dataBlockData: Buffer | null = null
+   private dataBlockOffsets: number[] = []
+   private _pstFile: PSTFile
+ 
+   private _subNodeOffsetIndexIdentifier: number
++
++  /**
++   * offset
++   */
+   public get subNodeOffsetIndexIdentifier(): number {
+     return this._subNodeOffsetIndexIdentifier
+   }
+ 
+   private _descriptorIdentifier: number
++
++  /**
++   * start
++   */
+   public get descriptorIdentifier(): number {
+     return this._descriptorIdentifier
+   }
+ 
++  /**
++   * u1
++   */
+   private _offsetIndexIdentifier: number
+   public get offsetIndexIdentifier(): number {
+     return this._offsetIndexIdentifier
+diff --git a/src/PSTFile.class.ts b/src/PSTFile.class.ts
+index 861a629..e4b29ce 100644
+--- a/src/PSTFile.class.ts
++++ b/src/PSTFile.class.ts
+@@ -686,17 +686,17 @@ export class PSTFile {
+         }
+         throw new Error(
+           'PSTFile::findBtreeItem Unable to find ' +
+-            index +
+-            ' is desc: ' +
+-            descTree
++          index +
++          ' is desc: ' +
++          descTree
+         )
+       }
+     }
+     throw new Error(
+       'PSTFile::findBtreeItem Unable to find node: ' +
+-        index +
+-        ' is desc: ' +
+-        descTree
++      index +
++      ' is desc: ' +
++      descTree
+     )
+   }
+ 
+@@ -715,6 +715,8 @@ export class PSTFile {
+   }
+ 
+   /**
++   * readBlock
++   * 
+    * Get an offset index node in the b-tree
+    * @param {long} id
+    * @returns {OffsetIndexItem}
+@@ -748,7 +750,7 @@ export class PSTFile {
+     if (sig != 0x2) {
+       throw new Error(
+         'PSTFile::getPSTDescriptorItems Unable to process descriptor node, bad signature: ' +
+-          sig
++        sig
+       )
+     }
+ 
+diff --git a/src/PSTMessage.class.ts b/src/PSTMessage.class.ts
+index 1d79018..78b0352 100644
+--- a/src/PSTMessage.class.ts
++++ b/src/PSTMessage.class.ts
+@@ -253,7 +253,7 @@ export class PSTMessage extends PSTObject {
+     ) {
+       throw new Error(
+         'PSTMessage::getRecipient unable to fetch recipient number ' +
+-          recipientNumber
++        recipientNumber
+       )
+     }
+     const recipientDetails = this.recipientTable.getItems()[recipientNumber]
+@@ -519,7 +519,7 @@ export class PSTMessage extends PSTObject {
+     if (attachmentNumber >= attachmentCount) {
+       throw new Error(
+         'PSTMessage::getAttachment unable to fetch attachment number ' +
+-          attachmentNumber
++        attachmentNumber
+       )
+     }
+ 
+@@ -560,14 +560,15 @@ export class PSTMessage extends PSTObject {
+       return new PSTAttachment(
+         this.pstFile,
+         attachmentDetailsTable,
+-        attachmentDescriptorItems
++        attachmentDescriptorItems,
++        this.descriptorIndexNode
+       )
+     }
+ 
+     throw new Error(
+       'PSTMessage::getAttachment unable to fetch attachment number ' +
+-        attachmentNumber +
+-        ', unable to read attachment details table'
++      attachmentNumber +
++      ', unable to read attachment details table'
+     )
+   }
+ 
+diff --git a/src/PSTObject.class.ts b/src/PSTObject.class.ts
+index 02fe2fd..6c062f0 100644
+--- a/src/PSTObject.class.ts
++++ b/src/PSTObject.class.ts
+@@ -13,6 +13,9 @@ import { PSTUtil } from './PSTUtil.class'
+ export abstract class PSTObject {
+   protected pstFile: PSTFile
+   protected descriptorIndexNode: DescriptorIndexNode | null = null
++  /**
++   * SubNodePtrMap
++   */
+   protected localDescriptorItems: Map<number, PSTDescriptorItem> | null = null
+   private pstTableBC: PSTTableBC | null = null
+   protected pstTableItems: Map<number, PSTTableItem> | null = null
+diff --git a/src/PSTTable7C.class.ts b/src/PSTTable7C.class.ts
+index bb091ed..4be4a51 100644
+--- a/src/PSTTable7C.class.ts
++++ b/src/PSTTable7C.class.ts
+@@ -10,6 +10,11 @@ import { PSTTable } from './PSTTable.class'
+ import { PSTTableItem } from './PSTTableItem.class'
+ import { ColumnDescriptor } from './ColumnDescriptor.class'
+ 
++/**
++ * TC
++ * 
++ * @see [[MS-PST]: Table Context (TC) | Microsoft Docs](https://docs.microsoft.com/en-us/openspecs/office_file_formats/ms-pst/5e48be0d-a75a-4918-a277-50408ff96740)
++ */
+ export class PSTTable7C extends PSTTable {
+   private items: Map<number, PSTTableItem>[] = []
+   private numberOfDataSets = 0
+diff --git a/src/PSTTableBC.class.ts b/src/PSTTableBC.class.ts
+index bd145d7..7449a48 100644
+--- a/src/PSTTableBC.class.ts
++++ b/src/PSTTableBC.class.ts
+@@ -6,6 +6,11 @@ import { PSTTable } from './PSTTable.class'
+ import { PSTTableItem } from './PSTTableItem.class'
+ import { PSTUtil } from './PSTUtil.class'
+ 
++/**
++ * PC
++ * 
++ * @see [[MS-PST]: Property Context (PC) | Microsoft Docs](https://docs.microsoft.com/en-us/openspecs/office_file_formats/ms-pst/294c83c6-ff92-42f5-b6b6-876c29fa9737)
++ */
+ export class PSTTableBC extends PSTTable {
+   private items: Map<number, PSTTableItem> = new Map()
+   private isDescNotYetInitiated = false
+diff --git a/src/PSTTableItem.class.ts b/src/PSTTableItem.class.ts
+index c2ef833..2f62832 100644
+--- a/src/PSTTableItem.class.ts
++++ b/src/PSTTableItem.class.ts
+@@ -4,6 +4,10 @@ import { PSTUtil } from './PSTUtil.class'
+ 
+ // Generic table item
+ // Provides some basic string functions
++
++/**
++ * Single property
++ */
+ export class PSTTableItem {
+   public static VALUE_TYPE_PT_UNICODE = 0x1f
+   public static VALUE_TYPE_PT_STRING8 = 0x1e
+@@ -21,6 +25,10 @@ export class PSTTableItem {
+   public set entryType(val) {
+     this._entryType = val
+   }
++
++  /**
++   * key
++   */
+   public get entryType(): Long {
+     return this._entryType
+   }
+@@ -37,6 +45,10 @@ export class PSTTableItem {
+   public set entryValueReference(val) {
+     this._entryValueReference = val
+   }
++
++  /**
++   * value
++   */
+   public get entryValueReference(): number {
+     return this._entryValueReference
+   }
+@@ -45,6 +57,10 @@ export class PSTTableItem {
+   public set entryValueType(val) {
+     this._entryValueType = val
+   }
++
++  /**
++   * type
++   */
+   public get entryValueType(): number {
+     return this._entryValueType
+   }
+@@ -53,6 +69,10 @@ export class PSTTableItem {
+   public set data(val) {
+     this._data = val
+   }
++
++  /**
++   * value bytes
++   */
+   public get data(): Buffer {
+     return this._data
+   }
