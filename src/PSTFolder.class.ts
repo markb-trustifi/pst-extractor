@@ -1,11 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import Long from 'long'
-import { DescriptorIndexNode } from './DescriptorIndexNode.class'
 import { OutlookProperties } from './OutlookProperties'
-import { PSTDescriptorItem } from './PSTDescriptorItem.class'
 import { PSTFile } from './PSTFile.class'
-import { PSTNodeInputStream } from './PSTNodeInputStream.class'
-import { PSTTableItem } from './PSTTableItem.class'
 import { PSTObject } from './PSTObject.class'
 import { PSTUtil } from './PSTUtil.class'
 import { PLNode } from './PLNode'

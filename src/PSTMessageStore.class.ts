@@ -1,4 +1,3 @@
-import { DescriptorIndexNode } from './DescriptorIndexNode.class'
 import { PropertyFinder } from './PAUtil'
 import { PLNode } from './PLNode'
 import { PLSubNode } from './PLSubNode'

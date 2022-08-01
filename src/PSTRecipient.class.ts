@@ -5,7 +5,6 @@ import { PLNode } from './PLNode';
 import { PLSubNode } from './PLSubNode';
 import { PSTFile } from './PSTFile.class'
 import { PSTObject } from './PSTObject.class'
-import { PSTTableItem } from './PSTTableItem.class'
 
 // Class containing recipient information
 export class PSTRecipient extends PSTObject {

@@ -1,13 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import Long from 'long'
-import { DescriptorIndexNode } from './DescriptorIndexNode.class'
 import { PSTAppointment } from './PSTAppointment.class'
 import { PSTContact } from './PSTContact.class'
-import { PSTDescriptorItem } from './PSTDescriptorItem.class'
 import { PSTFile } from './PSTFile.class'
-import { PSTFolder } from './PSTFolder.class'
 import { PSTMessage } from './PSTMessage.class'
-import { PSTNodeInputStream } from './PSTNodeInputStream.class'
 import { PSTTask } from './PSTTask.class'
 import { PSTActivity } from './PSTActivity.class'
 import iconv from 'iconv-lite'
