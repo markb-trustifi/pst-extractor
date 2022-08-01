@@ -11,6 +11,7 @@ import { getHeapFrom } from './PHUtil'
 import { PLSubNode } from './PLSubNode'
 import { CollectionAsyncProvider } from './CollectionAsyncProvider'
 import { SingleAsyncProvider } from './SingleAsyncProvider'
+import { RootProvider } from './RootProvider'
 
 /**
  * Represents a folder in the PST File.  Allows you to access child folders or items.
@@ -29,18 +30,19 @@ export class PSTFolder extends PSTObject {
    * Represents a folder in the PST File.  Allows you to access child folders or items.
    * Items are accessed through a sort of cursor arrangement.  This allows for
    * incremental reading of a folder which may have _lots_ of emails.
-   * @param {PSTFile} pstFile
+   * @internal
+   * @param {PSTFile} rootProvider
    * @param {DescriptorIndexNode} descriptorIndexNode
    * @param {Map<number, PSTDescriptorItem>} [localDescriptorItems]
    * @memberof PSTFolder
    */
   constructor(
-    pstFile: PSTFile,
+    rootProvider: RootProvider,
     node: PLNode,
     subNode: PLSubNode,
     propertyFinder: PropertyFinder
   ) {
-    super(pstFile, node, subNode, propertyFinder)
+    super(rootProvider, node, subNode, propertyFinder)
 
     this._subFoldersProvider = new SingleAsyncProvider();
     this._emailsProvider = new SingleAsyncProvider();
@@ -66,7 +68,7 @@ export class PSTFolder extends PSTObject {
 
             const tc = await getTableContext(
               heap,
-              this.pstFile.resolver
+              this._rootProvider.resolver
             );
 
             const rows = await tc.rows();
@@ -110,7 +112,7 @@ export class PSTFolder extends PSTObject {
             if (!(index in targets)) {
               throw new RangeError(`email index ${index} out of range. maximum index is ${targets.length - 1}.`);
             }
-            return await this.pstFile.getItemOf(
+            return await this._rootProvider.getItemOf(
               targets[index],
               targets[index].getSubNode()
             );
@@ -141,7 +143,7 @@ export class PSTFolder extends PSTObject {
               if (!(index in targets)) {
                 throw new RangeError(`folder index ${index} out of range. maximum index is ${targets.length - 1}.`);
               }
-              return await this.pstFile.getFolderOf(targets[index]);
+              return await this._rootProvider.getFolderOf(targets[index]);
             }
           );
         } catch (err) {

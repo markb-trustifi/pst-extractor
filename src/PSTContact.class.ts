@@ -5,15 +5,20 @@ import { PLNode } from './PLNode'
 import { PLSubNode } from './PLSubNode'
 import { PSTFile } from './PSTFile.class'
 import { PSTMessage } from './PSTMessage.class'
+import { RootProvider } from './RootProvider'
 
 export class PSTContact extends PSTMessage {
+  /**
+   * 
+   * @internal
+   */
   constructor(
-    pstFile: PSTFile,
+    rootProvider: RootProvider,
     node: PLNode,
     subNode: PLSubNode,
     propertyFinder: PropertyFinder
   ) {
-    super(pstFile, node, subNode, propertyFinder);
+    super(rootProvider, node, subNode, propertyFinder);
   }
 
   /**
@@ -649,7 +654,7 @@ export class PSTContact extends PSTMessage {
    * @memberof PSTContact
    */
   public getNamedStringItem(key: number): string {
-    const id = this.pstFile.getNameToIdMapItem(
+    const id = this._rootProvider.getNameToIdMapItem(
       key,
       OutlookProperties.PSETID_Address
     )
@@ -876,7 +881,7 @@ export class PSTContact extends PSTMessage {
    */
   public get postalAddressId(): number {
     return this.getIntItem(
-      this.pstFile.getNameToIdMapItem(
+      this._rootProvider.getNameToIdMapItem(
         OutlookProperties.PidLidPostalAddressId,
         OutlookProperties.PSETID_Address
       )

@@ -14,6 +14,7 @@ import { PLNode } from './PLNode'
 import { PSTMessage } from './PSTMessage.class'
 import { PropertyValueResolver } from './PropertyValueResolver'
 import { PLSubNode } from './PLSubNode'
+import { RootProvider } from './RootProvider'
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 
 export class PSTFile {
@@ -101,44 +102,15 @@ export class PSTFile {
    */
   public static PSETID_Sharing = 14
 
-  private guidMap: Map<string, number> = new Map([
-    ['00020329-0000-0000-C000-000000000046', 0],
-    ['00062008-0000-0000-C000-000000000046', 1],
-    ['00062004-0000-0000-C000-000000000046', 2],
-    ['00020386-0000-0000-C000-000000000046', 3],
-    ['00062002-0000-0000-C000-000000000046', 4],
-    ['6ED8DA90-450B-101B-98DA-00AA003F1305', 5],
-    ['0006200A-0000-0000-C000-000000000046', 6],
-    ['41F28F13-83F4-4114-A584-EEDB5A6B0BFF', 7],
-    ['0006200E-0000-0000-C000-000000000046', 8],
-    ['00062041-0000-0000-C000-000000000046', 9],
-    ['00062003-0000-0000-C000-000000000046', 10],
-    ['4442858E-A9E3-4E80-B900-317A210CC15B', 11],
-    ['00020328-0000-0000-C000-000000000046', 12],
-    ['71035549-0739-4DCB-9163-00F0580DBBDF', 13],
-    ['00062040-0000-0000-C000-000000000046', 14],
-  ])
-
   private _store: PLStore;
   private _resolver: PropertyValueResolver;
-
-  /**
-   * @internal
-   */
-  get resolver(): PropertyValueResolver {
-    return this._resolver;
-  }
-
-  private _ansiEncoding?: string
-  get ansiEncoding(): string | undefined {
-    return this._ansiEncoding;
-  }
 
   // node tree maps
   private static nodeMap: NodeMap = new NodeMap();
 
   /**
    * Creates an instance of PSTFile.  File is opened in constructor.
+   * @internal
    * @param {string} fileName
    * @memberof PSTFile
    */
@@ -233,14 +205,12 @@ export class PSTFile {
     );
     const propertyFinder = createPropertyFinder(await pc.list());
 
-    return new PSTMessageStore(this, node, node.getSubNode(), propertyFinder);
+    return new PSTMessageStore(
+      this.getRootProvider(), node, node.getSubNode(), propertyFinder
+    );
   }
 
-  /**
-   * 
-   * @internal
-   */
-  async getFolderOf(node: PLNode): Promise<PSTFolder> {
+  private async getFolderOf(node: PLNode): Promise<PSTFolder> {
     const heap = await getHeapFrom(node.getSubNode());
     const pc = await getPropertyContext(
       heap,
@@ -249,7 +219,7 @@ export class PSTFile {
     const propertyFinder = createPropertyFinder(await pc.list());
 
     const output: PSTFolder = new PSTFolder(
-      this,
+      this.getRootProvider(),
       node,
       node.getSubNode(),
       propertyFinder
@@ -257,13 +227,9 @@ export class PSTFile {
     return output
   }
 
-  /**
-   * 
-   * @internal
-   */
-  async getItemOf(node: PLNode, subNode: PLSubNode): Promise<PSTMessage> {
+  private async getItemOf(node: PLNode, subNode: PLSubNode): Promise<PSTMessage> {
     return await PSTUtil.createAppropriatePSTMessageObject(
-      this,
+      this.getRootProvider(),
       node,
       subNode,
       this._resolver
@@ -284,6 +250,16 @@ export class PSTFile {
     }
     return await this.getFolderOf(node);
   }
+
+  private getRootProvider(): RootProvider {
+    return {
+      resolver: this._resolver,
+      getNameToIdMapItem: this.getNameToIdMapItem,
+      getItemOf: this.getItemOf,
+      getFolderOf: this.getFolderOf,
+    } as RootProvider
+  }
+
 
   /**
    * JSON stringify the object properties.

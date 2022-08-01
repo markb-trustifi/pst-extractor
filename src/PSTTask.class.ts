@@ -6,22 +6,24 @@ import { RecurrencePattern } from './RecurrencePattern.class'
 import { PLNode } from './PLNode'
 import { PropertyFinder } from './PAUtil'
 import { PLSubNode } from './PLSubNode'
+import { RootProvider } from './RootProvider'
 
 export class PSTTask extends PSTMessage {
   /**
    * Creates an instance of PSTTask.
-   * @param {PSTFile} pstFile
+   * @internal
+   * @param {PSTFile} rootProvider
    * @param {DescriptorIndexNode} descriptorIndexNode
    * @param {Map<number, PSTDescriptorItem>} [localDescriptorItems]
    * @memberof PSTTask
    */
   constructor(
-    pstFile: PSTFile,
+    rootProvider: RootProvider,
     node: PLNode,
     subNode: PLSubNode,
     propertyFinder: PropertyFinder
   ) {
-    super(pstFile, node, subNode, propertyFinder);
+    super(rootProvider, node, subNode, propertyFinder);
   }
 
   /**
@@ -33,7 +35,7 @@ export class PSTTask extends PSTMessage {
    */
   public get taskStatus(): number {
     return this.getIntItem(
-      this.pstFile.getNameToIdMapItem(
+      this._rootProvider.getNameToIdMapItem(
         OutlookProperties.PidLidTaskStatus,
         PSTFile.PSETID_Task
       )
@@ -49,7 +51,7 @@ export class PSTTask extends PSTMessage {
    */
   public get percentComplete(): number {
     return this.getDoubleItem(
-      this.pstFile.getNameToIdMapItem(
+      this._rootProvider.getNameToIdMapItem(
         OutlookProperties.PidLidPercentComplete,
         PSTFile.PSETID_Task
       )
@@ -65,7 +67,7 @@ export class PSTTask extends PSTMessage {
    */
   public get taskDateCompleted(): Date | null {
     return this.getDateItem(
-      this.pstFile.getNameToIdMapItem(
+      this._rootProvider.getNameToIdMapItem(
         OutlookProperties.PidLidTaskDateCompleted,
         PSTFile.PSETID_Task
       )
@@ -81,7 +83,7 @@ export class PSTTask extends PSTMessage {
    */
   public get taskActualEffort(): number {
     return this.getIntItem(
-      this.pstFile.getNameToIdMapItem(
+      this._rootProvider.getNameToIdMapItem(
         OutlookProperties.PidLidTaskActualEffort,
         PSTFile.PSETID_Task
       )
@@ -97,7 +99,7 @@ export class PSTTask extends PSTMessage {
    */
   public get taskEstimatedEffort(): number {
     return this.getIntItem(
-      this.pstFile.getNameToIdMapItem(
+      this._rootProvider.getNameToIdMapItem(
         OutlookProperties.PidLidTaskEstimatedEffort,
         PSTFile.PSETID_Task
       )
@@ -113,7 +115,7 @@ export class PSTTask extends PSTMessage {
    */
   public get taskVersion(): number {
     return this.getIntItem(
-      this.pstFile.getNameToIdMapItem(
+      this._rootProvider.getNameToIdMapItem(
         OutlookProperties.PidLidTaskVersion,
         PSTFile.PSETID_Task
       )
@@ -129,7 +131,7 @@ export class PSTTask extends PSTMessage {
    */
   public get isTaskComplete(): boolean {
     return this.getBooleanItem(
-      this.pstFile.getNameToIdMapItem(
+      this._rootProvider.getNameToIdMapItem(
         OutlookProperties.PidLidTaskComplete,
         PSTFile.PSETID_Task
       )
@@ -145,7 +147,7 @@ export class PSTTask extends PSTMessage {
    */
   public get taskOwner(): string {
     return this.getStringItem(
-      this.pstFile.getNameToIdMapItem(
+      this._rootProvider.getNameToIdMapItem(
         OutlookProperties.PidLidTaskOwner,
         PSTFile.PSETID_Task
       )
@@ -161,7 +163,7 @@ export class PSTTask extends PSTMessage {
    */
   public get taskAssigner(): string {
     return this.getStringItem(
-      this.pstFile.getNameToIdMapItem(
+      this._rootProvider.getNameToIdMapItem(
         OutlookProperties.PidLidTaskAssigner,
         PSTFile.PSETID_Task
       )
@@ -177,7 +179,7 @@ export class PSTTask extends PSTMessage {
    */
   public get taskLastUser(): string {
     return this.getStringItem(
-      this.pstFile.getNameToIdMapItem(
+      this._rootProvider.getNameToIdMapItem(
         OutlookProperties.PidLidTaskLastUser,
         PSTFile.PSETID_Task
       )
@@ -193,7 +195,7 @@ export class PSTTask extends PSTMessage {
    */
   public get taskOrdinal(): number {
     return this.getIntItem(
-      this.pstFile.getNameToIdMapItem(
+      this._rootProvider.getNameToIdMapItem(
         OutlookProperties.PidLidTaskOrdinal,
         PSTFile.PSETID_Task
       )
@@ -208,7 +210,7 @@ export class PSTTask extends PSTMessage {
    */
   public get isTaskRecurring(): boolean {
     return this.getBooleanItem(
-      this.pstFile.getNameToIdMapItem(
+      this._rootProvider.getNameToIdMapItem(
         OutlookProperties.PidLidTaskFRecurring,
         PSTFile.PSETID_Task
       )
@@ -222,7 +224,7 @@ export class PSTTask extends PSTMessage {
    */
   public get taskRecurrencePattern(): RecurrencePattern | null {
     const recurrenceBLOB = this.getBinaryItem(
-      this.pstFile.getNameToIdMapItem(
+      this._rootProvider.getNameToIdMapItem(
         OutlookProperties.PidLidTaskRecurrence,
         PSTFile.PSETID_Task
       )
@@ -237,7 +239,7 @@ export class PSTTask extends PSTMessage {
    */
   public get taskDeadOccurrence(): boolean {
     return this.getBooleanItem(
-      this.pstFile.getNameToIdMapItem(
+      this._rootProvider.getNameToIdMapItem(
         OutlookProperties.PidLidTaskDeadOccurrence,
         PSTFile.PSETID_Task
       )
@@ -253,7 +255,7 @@ export class PSTTask extends PSTMessage {
    */
   public get taskOwnership(): number {
     return this.getIntItem(
-      this.pstFile.getNameToIdMapItem(
+      this._rootProvider.getNameToIdMapItem(
         OutlookProperties.PidLidTaskOwnership,
         PSTFile.PSETID_Task
       )
@@ -269,7 +271,7 @@ export class PSTTask extends PSTMessage {
    */
   public get acceptanceState(): number {
     return this.getIntItem(
-      this.pstFile.getNameToIdMapItem(
+      this._rootProvider.getNameToIdMapItem(
         OutlookProperties.PidLidTaskAcceptanceState,
         PSTFile.PSETID_Task
       )

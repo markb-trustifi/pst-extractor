@@ -6,19 +6,21 @@ import { PLNode } from './PLNode'
 import { PLSubNode } from './PLSubNode'
 import { Property } from './Property'
 import { PSTFile } from './PSTFile.class'
+import { RootProvider } from './RootProvider'
 
 export abstract class PSTObject {
-  protected pstFile: PSTFile
+  protected _rootProvider: RootProvider
   protected _node: PLNode
   protected _subNode: PLSubNode
   protected _propertyFinder: PropertyFinder
 
   /**
    * Creates an instance of PSTObject, the root class of most PST Items.
+   * @internal
    * @memberof PSTObject
    */
   constructor(
-    pstFile: PSTFile,
+    rootProvider: RootProvider,
     node: PLNode,
     subNode: PLSubNode,
     propertyFinder: PropertyFinder
@@ -26,7 +28,7 @@ export abstract class PSTObject {
     if (!propertyFinder) {
       console.trace("propertyFinder not defined");
     }
-    this.pstFile = pstFile
+    this._rootProvider = rootProvider
     this._node = node;
     this._subNode = subNode;
     this._propertyFinder = propertyFinder;

@@ -13,6 +13,7 @@ import { getPropertyContext } from './PropertyContextUtil'
 import { PropertyValueResolver } from './PropertyValueResolver'
 import { createPropertyFinder } from './PAUtil'
 import { PLSubNode } from './PLSubNode'
+import { RootProvider } from './RootProvider'
 
 /**
  * Utility functions for PST components
@@ -707,7 +708,7 @@ export class PSTUtil {
    * Creates object based on message class
    * https://msdn.microsoft.com/en-us/vba/outlook-vba/articles/item-types-and-message-classes
    * @static
-   * @param {PSTFile} theFile
+   * @param {PSTFile} rootProvider
    * @param {DescriptorIndexNode} folderIndexNode
    * @param {PSTTableBC} table
    * @param {Map<number, PSTDescriptorItem>} localDescriptorItems
@@ -715,7 +716,7 @@ export class PSTUtil {
    * @memberof PSTUtil
    */
   public static async createAppropriatePSTMessageObject(
-    theFile: PSTFile,
+    rootProvider: RootProvider,
     node: PLNode,
     subNode: PLSubNode,
     resolver: PropertyValueResolver
@@ -740,7 +741,7 @@ export class PSTUtil {
       case 'IPM.Note.Agenda':
         // email message
         const msg = new PSTMessage(
-          theFile,
+          rootProvider,
           node,
           subNode,
           propertyFinder
@@ -760,7 +761,7 @@ export class PSTUtil {
         // appointment
         // messageClass.startsWith('IPM.Schedule.Meeting')
         const apt = new PSTAppointment(
-          theFile,
+          rootProvider,
           node,
           subNode,
           propertyFinder
@@ -770,7 +771,7 @@ export class PSTUtil {
       case 'IPM.Contact':
         // contact
         const contact = new PSTContact(
-          theFile,
+          rootProvider,
           node,
           subNode,
           propertyFinder
@@ -780,7 +781,7 @@ export class PSTUtil {
       case 'IPM.Task':
         // task
         const task = new PSTTask(
-          theFile,
+          rootProvider,
           node,
           subNode,
           propertyFinder
@@ -790,7 +791,7 @@ export class PSTUtil {
       case 'IPM.Activity':
         // journal entry
         const activity = new PSTActivity(
-          theFile,
+          rootProvider,
           node,
           subNode,
           propertyFinder
@@ -801,7 +802,7 @@ export class PSTUtil {
         // debugger;
         // Rss Feed
         const rss = new PSTMessage(
-          theFile,
+          rootProvider,
           node,
           subNode,
           propertyFinder
@@ -812,7 +813,7 @@ export class PSTUtil {
         // debugger;
         // Distribution list
         const dl = new PSTMessage(
-          theFile,
+          rootProvider,
           node,
           subNode,
           propertyFinder
@@ -824,7 +825,7 @@ export class PSTUtil {
         // debugger;
         // Out of Office rule
         const oof = new PSTMessage(
-          theFile,
+          rootProvider,
           node,
           subNode,
           propertyFinder
@@ -834,7 +835,7 @@ export class PSTUtil {
       case 'IPM.Schedule.Meeting.Request':
         // Meeting request
         const meetReq = new PSTMessage(
-          theFile,
+          rootProvider,
           node,
           subNode,
           propertyFinder
@@ -844,7 +845,7 @@ export class PSTUtil {
       case 'REPORT.IPM.Note.NDR':
         // Receipt of non-delivery
         const ndr = new PSTMessage(
-          theFile,
+          rootProvider,
           node,
           subNode,
           propertyFinder
@@ -854,7 +855,7 @@ export class PSTUtil {
       case 'IPM.StickyNote':
         // Sticky note
         const sticky = new PSTMessage(
-          theFile,
+          rootProvider,
           node,
           subNode,
           propertyFinder
@@ -866,7 +867,7 @@ export class PSTUtil {
         // debugger;
         // console.log('PSTUtil::createAppropriatePSTMessageObject REPORT.IPM.Note.IPNRN');
         return new PSTMessage(
-          theFile,
+          rootProvider,
           node,
           subNode,
           propertyFinder
@@ -876,7 +877,7 @@ export class PSTUtil {
         // debugger;
         // console.log('PSTUtil::createAppropriatePSTMessageObject REPORT.IPM.Note.IPNNRN');
         return new PSTMessage(
-          theFile,
+          rootProvider,
           node,
           subNode,
           propertyFinder
@@ -886,7 +887,7 @@ export class PSTUtil {
         // debugger;
         // console.log('PSTUtil::createAppropriatePSTMessageObject IPM.Schedule.Meeting.Request');
         return new PSTMessage(
-          theFile,
+          rootProvider,
           node,
           subNode,
           propertyFinder
@@ -896,7 +897,7 @@ export class PSTUtil {
         // debugger;
         // console.log('PSTUtil::createAppropriatePSTMessageObject REPORT.IPM.Note.DR');
         return new PSTMessage(
-          theFile,
+          rootProvider,
           node,
           subNode,
           propertyFinder
@@ -908,7 +909,7 @@ export class PSTUtil {
         )
     }
     return new PSTMessage(
-      theFile,
+      rootProvider,
       node,
       subNode,
       propertyFinder

@@ -5,16 +5,21 @@ import { PLNode } from './PLNode'
 import { PLSubNode } from './PLSubNode'
 import { PSTFile } from './PSTFile.class'
 import { PSTMessage } from './PSTMessage.class'
+import { RootProvider } from './RootProvider'
 
 // PSTAppointment is for Calendar items
 export class PSTAppointment extends PSTMessage {
+  /**
+   * 
+   * @internal
+   */
   constructor(
-    pstFile: PSTFile,
+    rootProvider: RootProvider,
     node: PLNode,
     subNode: PLSubNode,
     propertyFinder: PropertyFinder
   ) {
-    super(pstFile, node, subNode, propertyFinder);
+    super(rootProvider, node, subNode, propertyFinder);
   }
 
   /**
@@ -26,7 +31,7 @@ export class PSTAppointment extends PSTMessage {
    */
   public get sendAsICAL(): boolean {
     return this.getBooleanItem(
-      this.pstFile.getNameToIdMapItem(
+      this._rootProvider.getNameToIdMapItem(
         OutlookProperties.PidLidSendMeetingAsIcal,
         OutlookProperties.PSETID_Appointment
       )
@@ -42,7 +47,7 @@ export class PSTAppointment extends PSTMessage {
    */
   public get busyStatus(): number {
     return this.getIntItem(
-      this.pstFile.getNameToIdMapItem(
+      this._rootProvider.getNameToIdMapItem(
         OutlookProperties.PidLidBusyStatus,
         OutlookProperties.PSETID_Appointment
       )
@@ -69,7 +74,7 @@ export class PSTAppointment extends PSTMessage {
    */
   public get location(): string {
     return this.getStringItem(
-      this.pstFile.getNameToIdMapItem(
+      this._rootProvider.getNameToIdMapItem(
         OutlookProperties.PidLidLocation,
         OutlookProperties.PSETID_Appointment
       )
@@ -85,7 +90,7 @@ export class PSTAppointment extends PSTMessage {
    */
   public get startTime(): Date | null {
     return this.getDateItem(
-      this.pstFile.getNameToIdMapItem(
+      this._rootProvider.getNameToIdMapItem(
         OutlookProperties.PidLidAppointmentStartWhole,
         OutlookProperties.PSETID_Appointment
       )
@@ -101,7 +106,7 @@ export class PSTAppointment extends PSTMessage {
    */
   public get endTime(): Date | null {
     return this.getDateItem(
-      this.pstFile.getNameToIdMapItem(
+      this._rootProvider.getNameToIdMapItem(
         OutlookProperties.PidLidAppointmentEndWhole,
         OutlookProperties.PSETID_Appointment
       )
@@ -117,7 +122,7 @@ export class PSTAppointment extends PSTMessage {
    */
   public get duration(): number {
     return this.getIntItem(
-      this.pstFile.getNameToIdMapItem(
+      this._rootProvider.getNameToIdMapItem(
         OutlookProperties.PidLidAppointmentDuration,
         OutlookProperties.PSETID_Appointment
       )
@@ -133,7 +138,7 @@ export class PSTAppointment extends PSTMessage {
    */
   public get color(): number {
     return this.getIntItem(
-      this.pstFile.getNameToIdMapItem(
+      this._rootProvider.getNameToIdMapItem(
         OutlookProperties.PidLidAppointmentColor,
         OutlookProperties.PSETID_Appointment
       )
@@ -150,7 +155,7 @@ export class PSTAppointment extends PSTMessage {
   public get subType(): boolean {
     return (
       this.getIntItem(
-        this.pstFile.getNameToIdMapItem(
+        this._rootProvider.getNameToIdMapItem(
           OutlookProperties.PidLidAppointmentSubType,
           OutlookProperties.PSETID_Appointment
         )
@@ -167,7 +172,7 @@ export class PSTAppointment extends PSTMessage {
    */
   public get meetingStatus(): number {
     return this.getIntItem(
-      this.pstFile.getNameToIdMapItem(
+      this._rootProvider.getNameToIdMapItem(
         OutlookProperties.PidLidAppointmentStateFlags,
         OutlookProperties.PSETID_Appointment
       )
@@ -183,7 +188,7 @@ export class PSTAppointment extends PSTMessage {
    */
   public get responseStatus(): number {
     return this.getIntItem(
-      this.pstFile.getNameToIdMapItem(
+      this._rootProvider.getNameToIdMapItem(
         OutlookProperties.PidLidResponseStatus,
         OutlookProperties.PSETID_Appointment
       )
@@ -199,7 +204,7 @@ export class PSTAppointment extends PSTMessage {
    */
   public get isRecurring(): boolean {
     return this.getBooleanItem(
-      this.pstFile.getNameToIdMapItem(
+      this._rootProvider.getNameToIdMapItem(
         OutlookProperties.PidLidRecurring,
         OutlookProperties.PSETID_Appointment
       )
@@ -215,7 +220,7 @@ export class PSTAppointment extends PSTMessage {
    */
   public get recurrenceBase(): Date | null {
     return this.getDateItem(
-      this.pstFile.getNameToIdMapItem(
+      this._rootProvider.getNameToIdMapItem(
         OutlookProperties.PidLidExceptionReplaceTime,
         OutlookProperties.PSETID_Appointment
       )
@@ -231,7 +236,7 @@ export class PSTAppointment extends PSTMessage {
    */
   public get recurrenceType(): number {
     return this.getIntItem(
-      this.pstFile.getNameToIdMapItem(
+      this._rootProvider.getNameToIdMapItem(
         OutlookProperties.PidLidRecurrenceType,
         OutlookProperties.PSETID_Appointment
       )
@@ -247,7 +252,7 @@ export class PSTAppointment extends PSTMessage {
    */
   public get recurrencePattern(): string {
     return this.getStringItem(
-      this.pstFile.getNameToIdMapItem(
+      this._rootProvider.getNameToIdMapItem(
         OutlookProperties.PidLidRecurrencePattern,
         OutlookProperties.PSETID_Appointment
       )
@@ -263,7 +268,7 @@ export class PSTAppointment extends PSTMessage {
    */
   public get recurrenceStructure(): Buffer | null {
     return this.getBinaryItem(
-      this.pstFile.getNameToIdMapItem(
+      this._rootProvider.getNameToIdMapItem(
         OutlookProperties.PidLidAppointmentRecur,
         OutlookProperties.PSETID_Appointment
       )
@@ -279,7 +284,7 @@ export class PSTAppointment extends PSTMessage {
    */
   public get timezone(): Buffer | null {
     return this.getBinaryItem(
-      this.pstFile.getNameToIdMapItem(
+      this._rootProvider.getNameToIdMapItem(
         OutlookProperties.PidLidTimeZoneStruct,
         OutlookProperties.PSETID_Appointment
       )
@@ -295,7 +300,7 @@ export class PSTAppointment extends PSTMessage {
    */
   public get allAttendees(): string {
     return this.getStringItem(
-      this.pstFile.getNameToIdMapItem(
+      this._rootProvider.getNameToIdMapItem(
         OutlookProperties.PidLidAllAttendeesString,
         OutlookProperties.PSETID_Appointment
       )
@@ -311,7 +316,7 @@ export class PSTAppointment extends PSTMessage {
    */
   public get toAttendees(): string {
     return this.getStringItem(
-      this.pstFile.getNameToIdMapItem(
+      this._rootProvider.getNameToIdMapItem(
         OutlookProperties.PidLidToAttendeesString,
         OutlookProperties.PSETID_Appointment
       )
@@ -327,7 +332,7 @@ export class PSTAppointment extends PSTMessage {
    */
   public get ccAttendees(): string {
     return this.getStringItem(
-      this.pstFile.getNameToIdMapItem(
+      this._rootProvider.getNameToIdMapItem(
         OutlookProperties.PidLidCcAttendeesString,
         OutlookProperties.PSETID_Appointment
       )
@@ -343,7 +348,7 @@ export class PSTAppointment extends PSTMessage {
    */
   public get appointmentSequence(): number {
     return this.getIntItem(
-      this.pstFile.getNameToIdMapItem(
+      this._rootProvider.getNameToIdMapItem(
         OutlookProperties.PidLidAppointmentSequence,
         OutlookProperties.PSETID_Appointment
       )
@@ -359,7 +364,7 @@ export class PSTAppointment extends PSTMessage {
    */
   public get isOnlineMeeting(): boolean {
     return this.getBooleanItem(
-      this.pstFile.getNameToIdMapItem(
+      this._rootProvider.getNameToIdMapItem(
         OutlookProperties.PidLidConferencingCheck,
         OutlookProperties.PSETID_Appointment
       )
@@ -375,7 +380,7 @@ export class PSTAppointment extends PSTMessage {
    */
   public get netMeetingType(): number {
     return this.getIntItem(
-      this.pstFile.getNameToIdMapItem(
+      this._rootProvider.getNameToIdMapItem(
         OutlookProperties.PidLidConferencingType,
         OutlookProperties.PSETID_Appointment
       )
@@ -391,7 +396,7 @@ export class PSTAppointment extends PSTMessage {
    */
   public get netMeetingServer(): string {
     return this.getStringItem(
-      this.pstFile.getNameToIdMapItem(
+      this._rootProvider.getNameToIdMapItem(
         OutlookProperties.PidLidDirectory,
         OutlookProperties.PSETID_Appointment
       )
@@ -407,7 +412,7 @@ export class PSTAppointment extends PSTMessage {
    */
   public get netMeetingOrganizerAlias(): string {
     return this.getStringItem(
-      this.pstFile.getNameToIdMapItem(
+      this._rootProvider.getNameToIdMapItem(
         OutlookProperties.PidLidOrganizerAlias,
         OutlookProperties.PSETID_Appointment
       )
@@ -423,7 +428,7 @@ export class PSTAppointment extends PSTMessage {
    */
   public get netMeetingDocumentPathName(): string {
     return this.getStringItem(
-      this.pstFile.getNameToIdMapItem(
+      this._rootProvider.getNameToIdMapItem(
         OutlookProperties.PidLidCollaborateDoc,
         OutlookProperties.PSETID_Appointment
       )
@@ -439,7 +444,7 @@ export class PSTAppointment extends PSTMessage {
    */
   public get netShowURL(): string {
     return this.getStringItem(
-      this.pstFile.getNameToIdMapItem(
+      this._rootProvider.getNameToIdMapItem(
         OutlookProperties.PidLidNetShowUrl,
         OutlookProperties.PSETID_Appointment
       )
@@ -455,7 +460,7 @@ export class PSTAppointment extends PSTMessage {
    */
   public get attendeeCriticalChange(): Date | null {
     return this.getDateItem(
-      this.pstFile.getNameToIdMapItem(
+      this._rootProvider.getNameToIdMapItem(
         OutlookProperties.PidLidAttendeeCriticalChange,
         OutlookProperties.PSETID_Meeting
       )
@@ -471,7 +476,7 @@ export class PSTAppointment extends PSTMessage {
    */
   public get appointmentCounterProposal(): boolean {
     return this.getBooleanItem(
-      this.pstFile.getNameToIdMapItem(
+      this._rootProvider.getNameToIdMapItem(
         OutlookProperties.PidLidAppointmentCounterProposal,
         OutlookProperties.PSETID_Appointment
       )
@@ -487,7 +492,7 @@ export class PSTAppointment extends PSTMessage {
    */
   public get isSilent(): boolean {
     return this.getBooleanItem(
-      this.pstFile.getNameToIdMapItem(
+      this._rootProvider.getNameToIdMapItem(
         OutlookProperties.PidLidIsSilent,
         OutlookProperties.PSETID_Meeting
       )
@@ -503,7 +508,7 @@ export class PSTAppointment extends PSTMessage {
    */
   public get requiredAttendees(): string {
     return this.getStringItem(
-      this.pstFile.getNameToIdMapItem(
+      this._rootProvider.getNameToIdMapItem(
         OutlookProperties.PidLidRequiredAttendees,
         OutlookProperties.PSETID_Meeting
       )

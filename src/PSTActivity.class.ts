@@ -5,23 +5,25 @@ import { OutlookProperties } from './OutlookProperties'
 import { PLNode } from './PLNode'
 import { PropertyFinder } from './PAUtil'
 import { PLSubNode } from './PLSubNode'
+import { RootProvider } from './RootProvider'
 
 export class PSTActivity extends PSTMessage {
   /**
    * Creates an instance of PSTActivity.  Represents Journal entries, class IPM.Activity.
    * https://msdn.microsoft.com/en-us/library/office/aa204771(v=office.11).aspx
-   * @param {PSTFile} pstFile
+   * @internal
+   * @param {PSTFile} rootProvider
    * @param {DescriptorIndexNode} descriptorIndexNode
    * @param {Map<number, PSTDescriptorItem>} [localDescriptorItems]
    * @memberof PSTActivity
    */
   constructor(
-    pstFile: PSTFile,
+    rootProvider: RootProvider,
     node: PLNode,
     subNode: PLSubNode,
     propertyFinder: PropertyFinder
   ) {
-    super(pstFile, node, subNode, propertyFinder);
+    super(rootProvider, node, subNode, propertyFinder);
   }
 
   /**
@@ -33,7 +35,7 @@ export class PSTActivity extends PSTMessage {
    */
   public get logType(): string {
     return this.getStringItem(
-      this.pstFile.getNameToIdMapItem(
+      this._rootProvider.getNameToIdMapItem(
         OutlookProperties.PidLidLogType,
         OutlookProperties.PSETID_Log
       )
@@ -49,7 +51,7 @@ export class PSTActivity extends PSTMessage {
    */
   public get logStart(): Date | null {
     return this.getDateItem(
-      this.pstFile.getNameToIdMapItem(
+      this._rootProvider.getNameToIdMapItem(
         OutlookProperties.PidLidLogStart,
         OutlookProperties.PSETID_Log
       )
@@ -65,7 +67,7 @@ export class PSTActivity extends PSTMessage {
    */
   public get logDuration(): number {
     return this.getIntItem(
-      this.pstFile.getNameToIdMapItem(
+      this._rootProvider.getNameToIdMapItem(
         OutlookProperties.PidLidLogDuration,
         OutlookProperties.PSETID_Log
       )
@@ -81,7 +83,7 @@ export class PSTActivity extends PSTMessage {
    */
   public get logEnd(): Date | null {
     return this.getDateItem(
-      this.pstFile.getNameToIdMapItem(
+      this._rootProvider.getNameToIdMapItem(
         OutlookProperties.PidLidLogEnd,
         OutlookProperties.PSETID_Log
       )
@@ -97,7 +99,7 @@ export class PSTActivity extends PSTMessage {
    */
   public get logFlags(): number {
     return this.getIntItem(
-      this.pstFile.getNameToIdMapItem(
+      this._rootProvider.getNameToIdMapItem(
         OutlookProperties.PidLidLogFlags,
         OutlookProperties.PSETID_Log
       )
@@ -113,7 +115,7 @@ export class PSTActivity extends PSTMessage {
    */
   public get isDocumentPrinted(): boolean {
     return this.getBooleanItem(
-      this.pstFile.getNameToIdMapItem(
+      this._rootProvider.getNameToIdMapItem(
         OutlookProperties.PidLidLogDocumentPrinted,
         OutlookProperties.PSETID_Log
       )
@@ -129,7 +131,7 @@ export class PSTActivity extends PSTMessage {
    */
   public get isDocumentSaved(): boolean {
     return this.getBooleanItem(
-      this.pstFile.getNameToIdMapItem(
+      this._rootProvider.getNameToIdMapItem(
         OutlookProperties.PidLidLogDocumentSaved,
         OutlookProperties.PSETID_Log
       )
@@ -145,7 +147,7 @@ export class PSTActivity extends PSTMessage {
    */
   public get isDocumentRouted(): boolean {
     return this.getBooleanItem(
-      this.pstFile.getNameToIdMapItem(
+      this._rootProvider.getNameToIdMapItem(
         OutlookProperties.PidLidLogDocumentRouted,
         OutlookProperties.PSETID_Log
       )
@@ -161,7 +163,7 @@ export class PSTActivity extends PSTMessage {
    */
   public get isDocumentPosted(): boolean {
     return this.getBooleanItem(
-      this.pstFile.getNameToIdMapItem(
+      this._rootProvider.getNameToIdMapItem(
         OutlookProperties.PidLidLogDocumentPosted,
         OutlookProperties.PSETID_Log
       )
@@ -177,7 +179,7 @@ export class PSTActivity extends PSTMessage {
    */
   public get logTypeDesc(): string {
     return this.getStringItem(
-      this.pstFile.getNameToIdMapItem(
+      this._rootProvider.getNameToIdMapItem(
         OutlookProperties.PidLidLogTypeDesc,
         OutlookProperties.PSETID_Log
       )

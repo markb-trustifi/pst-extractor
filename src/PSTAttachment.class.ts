@@ -8,6 +8,7 @@ import { PSTFile } from './PSTFile.class'
 import { PSTMessage } from './PSTMessage.class'
 import { PSTObject } from './PSTObject.class'
 import { PSTUtil } from './PSTUtil.class'
+import { RootProvider } from './RootProvider'
 
 // Class containing attachment information.
 export class PSTAttachment extends PSTObject {
@@ -21,17 +22,18 @@ export class PSTAttachment extends PSTObject {
 
   /**
    * Creates an instance of PSTAttachment.
-   * @param {PSTFile} pstFile
+   * @internal
+   * @param {PSTFile} rootProvider
    * @param {Map<number, PSTDescriptorItem>} localDescriptorItems
    * @memberof PSTAttachment
    */
   constructor(
-    pstFile: PSTFile,
+    rootProvider: RootProvider,
     node: PLNode,
     subNode: PLSubNode,
     propertyFinder: PropertyFinder
   ) {
-    super(pstFile, node, subNode, propertyFinder);
+    super(rootProvider, node, subNode, propertyFinder);
   }
 
   /**
@@ -101,7 +103,7 @@ export class PSTAttachment extends PSTObject {
             );
           }
 
-          return await this.pstFile.getItemOf(
+          return await this._rootProvider.getItemOf(
             this._node,
             subNode
           );

@@ -15,6 +15,7 @@ import { getPropertyContext } from './PropertyContextUtil'
 import { PLSubNode } from './PLSubNode'
 import { SingleAsyncProvider } from './SingleAsyncProvider'
 import { CollectionAsyncProvider } from './CollectionAsyncProvider'
+import { RootProvider } from './RootProvider'
 
 enum PidTagMessageFlags {
   MSGFLAG_READ = 0x01,
@@ -43,18 +44,19 @@ export class PSTMessage extends PSTObject {
    * however there seems to be no hard and fast outline for what properties apply to which
    * objects. For properties where no value is set, a blank value is returned (rather than
    * an exception being raised).
-   * @param {PSTFile} pstFile
+   * @internal
+   * @param {PSTFile} rootProvider
    * @param {DescriptorIndexNode} descriptorIndexNode
    * @param {Map<number, PSTDescriptorItem>} [localDescriptorItems]
    * @memberof PSTMessage
    */
   constructor(
-    pstFile: PSTFile,
+    rootProvider: RootProvider,
     node: PLNode,
     subNode: PLSubNode,
     propertyFinder: PropertyFinder
   ) {
-    super(pstFile, node, subNode, propertyFinder);
+    super(rootProvider, node, subNode, propertyFinder);
 
     this._attachmentsProvider = new SingleAsyncProvider();
     this._recipientsProvider = new SingleAsyncProvider();
@@ -224,7 +226,7 @@ export class PSTMessage extends PSTObject {
             const heap = await getHeapFrom(childNode);
             const tc = await getTableContext(
               heap,
-              this.pstFile.resolver
+              this._rootProvider.resolver
             );
 
             const rows = await tc.rows();
@@ -237,7 +239,7 @@ export class PSTMessage extends PSTObject {
                 }
                 const propertyFinder = createPropertyFinder(await rows[index].list());
                 return new PSTRecipient(
-                  this.pstFile,
+                  this._rootProvider,
                   this._node,
                   this._subNode,
                   propertyFinder
@@ -429,7 +431,7 @@ export class PSTMessage extends PSTObject {
             const heap = await getHeapFrom(childNode);
             const tc = await getTableContext(
               heap,
-              this.pstFile.resolver
+              this._rootProvider.resolver
             );
 
             const rows = await tc.rows();
@@ -465,7 +467,7 @@ export class PSTMessage extends PSTObject {
 
                 const pc2 = await getPropertyContext(
                   heap2,
-                  this.pstFile.resolver
+                  this._rootProvider.resolver
                 );
 
                 const propertyFinder2 = createPropertyFinder(
@@ -473,7 +475,7 @@ export class PSTMessage extends PSTObject {
                 );
 
                 return new PSTAttachment(
-                  this.pstFile,
+                  this._rootProvider,
                   this._node,
                   child2,
                   propertyFinder2
@@ -1185,7 +1187,7 @@ export class PSTMessage extends PSTObject {
    */
   public get taskStartDate(): Date | null {
     return this.getDateItem(
-      this.pstFile.getNameToIdMapItem(
+      this._rootProvider.getNameToIdMapItem(
         OutlookProperties.PidLidTaskStartDate,
         PSTFile.PSETID_Task
       )
@@ -1201,7 +1203,7 @@ export class PSTMessage extends PSTObject {
    */
   public get taskDueDate(): Date | null {
     return this.getDateItem(
-      this.pstFile.getNameToIdMapItem(
+      this._rootProvider.getNameToIdMapItem(
         OutlookProperties.PidLidTaskDueDate,
         PSTFile.PSETID_Task
       )
@@ -1217,7 +1219,7 @@ export class PSTMessage extends PSTObject {
    */
   public get reminderSet(): boolean {
     return this.getBooleanItem(
-      this.pstFile.getNameToIdMapItem(
+      this._rootProvider.getNameToIdMapItem(
         OutlookProperties.PidLidReminderSet,
         OutlookProperties.PSETID_Common
       )
@@ -1233,7 +1235,7 @@ export class PSTMessage extends PSTObject {
    */
   public get reminderDelta(): number {
     return this.getIntItem(
-      this.pstFile.getNameToIdMapItem(
+      this._rootProvider.getNameToIdMapItem(
         OutlookProperties.PidLidReminderDelta,
         OutlookProperties.PSETID_Common
       )
