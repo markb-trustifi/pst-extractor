@@ -85,7 +85,7 @@ describe('PSTAttachment tests', () => {
     expect(attachment.isAttachmentInvisibleInHtml).toEqual(false)
     expect(attachment.isAttachmentInvisibleInRTF).toEqual(false)
     expect(attachment.filesize).toEqual(4796)
-    expect(attachment.embeddedPSTMessage).toEqual(null)
+    expect(await attachment.getEmbeddedPSTMessage()).toEqual(null)
   })
 
   it('should have email with word attachment', async () => {
