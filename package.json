@@ -18,7 +18,11 @@
     "type": "git",
     "url": "https://github.com/HiraokaHyperTools/pst-extractor.git"
   },
-  "author": "Ed Pfromer (epfromer@gmail.com), kenjiuno",
+  "author": "kenjiuno",
+  "contributors": [{
+    "name": "Ed Pfromer",
+    "email": "epfromer@gmail.com"
+  }],
   "license": "MIT",
   "devDependencies": {
     "@babel/core": "^7.17.8",
