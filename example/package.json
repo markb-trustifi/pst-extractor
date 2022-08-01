@@ -1,0 +1,38 @@
+{
+  "name": "pst-extractor-example",
+  "version": "1.1.0",
+  "private": true,
+  "dependencies": {
+    "pst-extractor": "link:.."
+  },
+  "devDependencies": {
+    "@types/node": "^17.0.23",
+    "eslint-config-prettier": "^8.5.0",
+    "eslint-plugin-prettier": "^4.0.0",
+    "prettier": "^2.6.2",
+    "ts-node": "^10.7.0",
+    "typescript": "^4.6.3"
+  },
+  "scripts": {
+    "start": "ts-node test-min.ts",
+    "test-min": "ts-node test-min.ts",
+    "test": "ts-node test.ts"
+  },
+  "eslintConfig": {
+    "extends": [
+      "plugin:prettier/recommended"
+    ],
+    "parser": "babel-eslint"
+  },
+  "prettier": {
+    "semi": false,
+    "singleQuote": true,
+    "endOfLine": "auto"
+  },
+  "browserslist": [
+    ">0.2%",
+    "not dead",
+    "not ie <= 11",
+    "not op_mini all"
+  ]
+}

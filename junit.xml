@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites name="jest tests" tests="25" failures="0" errors="0" time="8.382">
+  <testsuite name="PSTObject tests" errors="0" failures="0" skipped="0" timestamp="2022-08-01T12:05:00" time="4.89" tests="1">
+    <testcase classname="PSTObject tests should have basic attributes" name="PSTObject tests should have basic attributes" time="0.117">
+    </testcase>
+  </testsuite>
+  <testsuite name="RecurrencePattern tests" errors="0" failures="0" skipped="0" timestamp="2022-08-01T12:05:00" time="4.914" tests="2">
+    <testcase classname="RecurrencePattern tests should have a Calendar folder" name="RecurrencePattern tests should have a Calendar folder" time="0.002">
+    </testcase>
+    <testcase classname="RecurrencePattern tests should have repeating events" name="RecurrencePattern tests should have repeating events" time="0.125">
+    </testcase>
+  </testsuite>
+  <testsuite name="PSTMessage tests" errors="0" failures="0" skipped="0" timestamp="2022-08-01T12:05:05" time="0.319" tests="2">
+    <testcase classname="PSTMessage tests should have email messages" name="PSTMessage tests should have email messages" time="0.056">
+    </testcase>
+    <testcase classname="PSTMessage tests should have email message which uses block skip points" name="PSTMessage tests should have email message which uses block skip points" time="0.078">
+    </testcase>
+  </testsuite>
+  <testsuite name="PSTAttachment tests" errors="0" failures="0" skipped="0" timestamp="2022-08-01T12:05:05" time="0.366" tests="5">
+    <testcase classname="PSTAttachment tests should have a contact with an attachment" name="PSTAttachment tests should have a contact with an attachment" time="0.048">
+    </testcase>
+    <testcase classname="PSTAttachment tests should have a task with an attachment" name="PSTAttachment tests should have a task with an attachment" time="0.022">
+    </testcase>
+    <testcase classname="PSTAttachment tests should have email with word attachment" name="PSTAttachment tests should have email with word attachment" time="0.079">
+    </testcase>
+    <testcase classname="PSTAttachment tests should have email with excel attachment" name="PSTAttachment tests should have email with excel attachment" time="0.034">
+    </testcase>
+    <testcase classname="PSTAttachment tests should have email with jpg attachment" name="PSTAttachment tests should have email with jpg attachment" time="0.013">
+    </testcase>
+  </testsuite>
+  <testsuite name="PSTAppointment tests" errors="0" failures="0" skipped="0" timestamp="2022-08-01T12:05:05" time="0.279" tests="2">
+    <testcase classname="PSTAppointment tests should have a Calendar folder" name="PSTAppointment tests should have a Calendar folder" time="0.003">
+    </testcase>
+    <testcase classname="PSTAppointment tests should have two calendar items" name="PSTAppointment tests should have two calendar items" time="0.038">
+    </testcase>
+  </testsuite>
+  <testsuite name="PSTContact tests" errors="0" failures="0" skipped="0" timestamp="2022-08-01T12:05:05" time="0.305" tests="2">
+    <testcase classname="PSTContact tests should have a Contact folder" name="PSTContact tests should have a Contact folder" time="0">
+    </testcase>
+    <testcase classname="PSTContact tests should have a contact with several fields" name="PSTContact tests should have a contact with several fields" time="0.056">
+    </testcase>
+  </testsuite>
+  <testsuite name="PSTTask tests" errors="0" failures="0" skipped="0" timestamp="2022-08-01T12:05:05" time="0.216" tests="2">
+    <testcase classname="PSTTask tests should have a Tasks folder" name="PSTTask tests should have a Tasks folder" time="0">
+    </testcase>
+    <testcase classname="PSTTask tests should have two tasks" name="PSTTask tests should have two tasks" time="0.021">
+    </testcase>
+  </testsuite>
+  <testsuite name="PSTRecipient tests" errors="0" failures="0" skipped="0" timestamp="2022-08-01T12:05:05" time="0.219" tests="1">
+    <testcase classname="PSTRecipient tests should have email messages" name="PSTRecipient tests should have email messages" time="0.059">
+    </testcase>
+  </testsuite>
+  <testsuite name="PSTfile tests" errors="0" failures="0" skipped="0" timestamp="2022-08-01T12:05:06" time="0.194" tests="1">
+    <testcase classname="PSTfile tests should open the file" name="PSTfile tests should open the file" time="0.003">
+    </testcase>
+  </testsuite>
+  <testsuite name="PSTActivity tests" errors="0" failures="0" skipped="0" timestamp="2022-08-01T12:05:06" time="0.262" tests="2">
+    <testcase classname="PSTActivity tests should have a Journal folder" name="PSTActivity tests should have a Journal folder" time="0">
+    </testcase>
+    <testcase classname="PSTActivity tests root folder should have a journal entry" name="PSTActivity tests root folder should have a journal entry" time="0.011">
+    </testcase>
+  </testsuite>
+  <testsuite name="PSTAttachment tests" errors="0" failures="0" skipped="0" timestamp="2022-08-01T12:05:06" time="0.168" tests="1">
+    <testcase classname="PSTAttachment tests should have a message with an triple embedded messages" name="PSTAttachment tests should have a message with an triple embedded messages" time="0.084">
+    </testcase>
+  </testsuite>
+  <testsuite name="PSTFolder tests" errors="0" failures="0" skipped="0" timestamp="2022-08-01T12:05:06" time="0.209" tests="2">
+    <testcase classname="PSTFolder tests should have a root folder" name="PSTFolder tests should have a root folder" time="0.004">
+    </testcase>
+    <testcase classname="PSTFolder tests root folder should have sub folders" name="PSTFolder tests root folder should have sub folders" time="0.043">
+    </testcase>
+  </testsuite>
+  <testsuite name="PLUtil/PHUtil tests" errors="0" failures="0" skipped="0" timestamp="2022-08-01T12:05:00" time="6.652" tests="2">
+    <testcase classname="PLUtil/PHUtil tests openPstFile" name="PLUtil/PHUtil tests openPstFile" time="1.812">
+    </testcase>
+    <testcase classname="PLUtil/PHUtil tests openLowPst and so on" name="PLUtil/PHUtil tests openLowPst and so on" time="0.05">
+    </testcase>
+  </testsuite>
+</testsuites>
