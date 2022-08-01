@@ -1,26 +1,27 @@
 import { PSTFile } from '../PSTFile.class'
 import { PSTFolder } from '../PSTFolder.class'
 import { PSTContact } from '../PSTContact.class'
+import { openPstFile } from '../openPstFile'
 const resolve = require('path').resolve
 let pstFile: PSTFile
 let folder: PSTFolder
 
-beforeAll(() => {
-  pstFile = new PSTFile(
+beforeAll(async () => {
+  pstFile = await openPstFile(
     resolve('./src/__tests__/testdata/mtnman1965@outlook.com.ost')
   )
 
   // get to Contact folder
-  let childFolders: PSTFolder[] = pstFile.getRootFolder().getSubFolders()
+  let childFolders: PSTFolder[] = (await (await (await pstFile.getRootFolder()).folderCollection()).subFolders())
   folder = childFolders[1] // Root - Mailbox
-  childFolders = folder.getSubFolders()
+  childFolders = (await (await folder.folderCollection()).subFolders())
   folder = childFolders[4] // IPM_SUBTREE
-  childFolders = folder.getSubFolders()
+  childFolders = (await (await folder.folderCollection()).subFolders())
   folder = childFolders[10] // Contacts
 })
 
-afterAll(() => {
-  pstFile.close()
+afterAll(async () => {
+  await pstFile.close()
 })
 
 describe('PSTContact tests', () => {
@@ -28,8 +29,8 @@ describe('PSTContact tests', () => {
     expect(folder.displayName).toEqual('Contacts')
   })
 
-  it('should have a contact with several fields', () => {
-    const contact: PSTContact = folder.getNextChild()
+  it('should have a contact with several fields', async () => {
+    const contact: PSTContact = (await (await folder.itemCollection()).item(0)) as PSTContact
     // Log.debug1(JSON.stringify(contact, null, 2));
     expect(contact.messageClass).toEqual('IPM.Contact')
     expect(contact.subject).toEqual('Ed Pfromer')
