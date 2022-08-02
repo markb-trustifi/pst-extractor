@@ -106,10 +106,6 @@ export async function processNameToIDMap(
 
   const nodeMap = new NodeMap();
 
-  (await import("fs")).writeFileSync("C:/A/A1", nameToIdByte);
-  (await import("fs")).writeFileSync("C:/A/A2", stringNameToIdByte);
-  (await import("fs")).writeFileSync("C:/A/A3", guids);
-
   // process the entries
   for (let x = 0; x + 8 < nameToIdByte.length; x += 8) {
     const key: number = nameToIdByteView.getUint32(x, true);
