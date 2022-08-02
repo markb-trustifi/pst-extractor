@@ -14,7 +14,7 @@ const resolve = require('path').resolve;
 const filePath = resolve('./src/__tests__/testdata/mtnman1965@outlook.com.ost');
 
 describe('PLUtil/PHUtil tests', () => {
-  it('openPstFile', async () => {
+  async function doOpenPstFile(filePath) {
     const pst = await openPstFile(filePath);
 
     async function walk(folder: PSTFolder, depth: number): Promise<void> {
@@ -30,7 +30,18 @@ describe('PLUtil/PHUtil tests', () => {
     await walk(await pst.getRootFolder(), 0);
 
     await pst.close();
-  });
+  }
+
+  it('openPstFile ost', async () => await doOpenPstFile(filePath));
+
+  it('openPstFile pst unicode', async () => await doOpenPstFile(
+    resolve('./src/__tests__/testdata/contacts.pst'))
+  );
+
+  it('openPstFile pst ansi', async () => await doOpenPstFile(
+    resolve('./src/__tests__/testdata/contacts97-2002.pst'))
+  );
+
   it('openLowPst and so on', async () => {
     const file = await fs.promises.open(filePath, "r");
     try {
