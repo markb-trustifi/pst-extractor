@@ -142,6 +142,144 @@ async function willUnzip1(data: ArrayBuffer): Promise<ArrayBuffer> {
 }
 
 
+namespace ptr32 {
+  export function readBlockPtr(
+    view: DataView,
+    offset: number,
+    footer: NodeFooter
+  ): BlockPtr[] {
+    const array: BlockPtr[] = [];
+    for (let x = 0; x < footer.itemCount; x++) {
+      const top = offset + 12 * x;
+      const blockId = view.getUint32(top + 0, true);
+      array.push(
+        {
+          blockId,
+          offset: new Long(view.getUint32(top + 4, true)),
+          size: view.getUint16(top + 8, true),
+          isData: (blockId & 2) === 0,
+        } as BlockPtr
+      );
+    }
+    return array;
+  }
+
+  export function readTablePtr(
+    view: DataView,
+    offset: number,
+    footer: NodeFooter
+  ): TablePtr[] {
+    const array: TablePtr[] = [];
+    for (let x = 0; x < footer.itemCount; x++) {
+      const top = offset + 12 * x;
+      array.push(
+        {
+          start: new Long(view.getUint32(top + 0, true)),
+          u1: new Long(view.getUint32(top + 4, true)),
+          offset: new Long(view.getUint32(top + 8, true)),
+        } as TablePtr
+      );
+    }
+    return array;
+  }
+
+  export function readNodePtr(
+    view: DataView,
+    offset: number,
+    footer: NodeFooter
+  ): NodePtr[] {
+    const array: NodePtr[] = [];
+    for (let x = 0; x < footer.itemCount; x++) {
+      const top = offset + 16 * x;
+      array.push(
+        {
+          nodeId: view.getUint32(top + 0, true),
+          blockId: view.getUint32(top + 4, true),
+          subBlockId: view.getUint32(top + 8, true),
+          parentNodeId: view.getUint32(top + 12, true),
+        } as NodePtr
+      );
+    }
+    return array;
+  }
+
+  export function readSLBlock(
+    view: DataView,
+    offset: number
+  ): SLBlock {
+    const count = view.getUint16(offset + 2, true);
+    const entries: SLBlockEntry[] = [];
+    for (let x = 0; x < count; x++) {
+      const top = offset + 4 + 12 * x;
+      entries.push(
+        {
+          nodeId: view.getUint32(top + 0, true),
+          blockId: view.getUint32(top + 4, true),
+          subBlockId: view.getUint32(top + 8, true),
+        } as SLBlockEntry
+      );
+    }
+    return {
+      entries
+    };
+  }
+
+  export function readXBlock(
+    view: DataView,
+    offset: number,
+    itemCount: number
+  ): XBlockPtr[] {
+    const entries: XBlockPtr[] = [];
+    for (let x = 0; x < itemCount; x++) {
+      const top = offset + 8 + 4 * x;
+      entries.push(
+        {
+          blockId: view.getUint32(top + 0, true),
+        } as XBlockPtr
+      );
+    }
+    return entries;
+  }
+
+  export function readXXBlock(
+    view: DataView,
+    offset: number,
+    itemCount: number
+  ): XXBlockPtr[] {
+    const entries: XXBlockPtr[] = [];
+    for (let x = 0; x < itemCount; x++) {
+      const top = offset + 8 + 4 * x;
+      entries.push(
+        {
+          blockId: view.getUint32(top + 0, true),
+        } as XXBlockPtr
+      );
+    }
+    return entries;
+  }
+
+  export function readSIBlock(
+    view: DataView,
+    offset: number
+  ): SIBlock {
+    const count = view.getUint16(offset + 2, true);
+    const entries: SIBlockEntry[] = [];
+    for (let x = 0; x < count; x++) {
+      const top = offset + 4 + 12 * x;
+      entries.push(
+        {
+          nodeId: view.getUint32(top + 0, true),
+          blockId: view.getUint32(top + 4, true),
+        } as SIBlockEntry
+      );
+    }
+    return {
+      entries
+    };
+  }
+}
+
+
 namespace ptr64 {
   export function readBlockPtr(
     view: DataView,
@@ -279,6 +417,30 @@ namespace ptr64 {
   }
 }
 
+const ver0x0e: StoreTrait = {
+  BACKLINK_OFFSET: 0x1f8,
+  LEVEL_INDICATOR_OFFSET: 0x1f3,
+  ITEM_COUNT_OFFSET: 0x1f0,
+
+  ENC_OFFSET: 0x1cd,
+  SECOND_POINTER_COUNT: 0xB8,
+  SECOND_POINTER: 0xBC,
+  INDEX_POINTER_COUNT: 0xC0,
+  INDEX_POINTER: 0xC4,
+  BlockSize: 512,
+
+  readId: (view, offset) => new Long(view.getUint32(offset, true)),
+
+  readBlockPtr: ptr32.readBlockPtr,
+  readTablePtr: ptr32.readTablePtr,
+  readNodePtr: ptr32.readNodePtr,
+  readSLBlock: ptr32.readSLBlock,
+  readSIBlock: ptr32.readSIBlock,
+  readXBlock: ptr32.readXBlock,
+  readXXBlock: ptr32.readXXBlock,
+  unzipHook: passThru1,
+};
+
 const ver0x17: StoreTrait = {
   BACKLINK_OFFSET: 0x1f8,
   LEVEL_INDICATOR_OFFSET: 0x1eb,
@@ -394,6 +556,9 @@ export async function openLowPst(api: ReadFileApi): Promise<PLStore> {
   const version = view.getUint8(10);
   let trait: StoreTrait;
   if (false) { }
+  else if (version === 0x0e) {
+    trait = ver0x0e;
+  }
   else if (version === 0x17) {
     trait = ver0x17;
   }
