@@ -1,0 +1,12 @@
+{
+  "distributions": [{
+    "group": "default",
+    "packageDir": ".",
+    "branch": "dist/v{versionPrefix}-SNAPSHOT",
+    "commitMessage": "npm packaged\n\nPublishing as\n{url}",
+    "gitConfig": {
+      "user.email": "ku@digitaldolphins.jp",
+      "user.name": "kenjiuno"
+    }
+  }]
+}
