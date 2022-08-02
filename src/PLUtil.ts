@@ -68,7 +68,7 @@ interface StoreTrait {
   BACKLINK_OFFSET: number;
   LEVEL_INDICATOR_OFFSET: number;
   ITEM_COUNT_OFFSET: number;
-  ReadId(view: DataView, offset: number): Long;
+  readId(view: DataView, offset: number): Long;
 
   ENC_OFFSET: number;
   SECOND_POINTER_COUNT: number;
@@ -291,7 +291,7 @@ const ver0x17: StoreTrait = {
   INDEX_POINTER: 0xF0,
   BlockSize: 512,
 
-  ReadId: readLong,
+  readId: readLong,
 
   readBlockPtr: ptr64.readBlockPtr,
   readTablePtr: ptr64.readTablePtr,
@@ -315,7 +315,7 @@ const ver0x24: StoreTrait = {
   INDEX_POINTER: 0xF0,
   BlockSize: 4096,
 
-  ReadId: readLong,
+  readId: readLong,
 
   readBlockPtr: ptr64.readBlockPtr,
   readTablePtr: ptr64.readTablePtr,
@@ -458,7 +458,7 @@ export async function openLowPst(api: ReadFileApi): Promise<PLStore> {
     const footer = {
       itemCount: view.getUint8(trait.ITEM_COUNT_OFFSET),
       level: view.getUint8(trait.LEVEL_INDICATOR_OFFSET),
-      thisId: trait.ReadId(view, trait.BACKLINK_OFFSET),
+      thisId: trait.readId(view, trait.BACKLINK_OFFSET),
     } as NodeFooter;
 
     if (footer.thisId.neq(linku1)) {
@@ -498,8 +498,8 @@ export async function openLowPst(api: ReadFileApi): Promise<PLStore> {
     }
   }
 
-  const block_btree_count = trait.ReadId(view, trait.INDEX_POINTER_COUNT);
-  const block_btree = trait.ReadId(view, trait.INDEX_POINTER);
+  const block_btree_count = trait.readId(view, trait.INDEX_POINTER_COUNT);
+  const block_btree = trait.readId(view, trait.INDEX_POINTER);
 
   await loadBlockTree(block_btree, block_btree_count, Long.ZERO);
 
@@ -510,7 +510,7 @@ export async function openLowPst(api: ReadFileApi): Promise<PLStore> {
     const footer = {
       itemCount: view.getUint8(trait.ITEM_COUNT_OFFSET),
       level: view.getUint8(trait.LEVEL_INDICATOR_OFFSET),
-      thisId: trait.ReadId(view, trait.BACKLINK_OFFSET),
+      thisId: trait.readId(view, trait.BACKLINK_OFFSET),
     } as NodeFooter;
 
     if (prevLevel !== Infinity) {
@@ -557,8 +557,8 @@ export async function openLowPst(api: ReadFileApi): Promise<PLStore> {
     }
   }
 
-  const node_btree_count = trait.ReadId(view, trait.SECOND_POINTER_COUNT);
-  const node_btree = trait.ReadId(view, trait.SECOND_POINTER);
+  const node_btree_count = trait.readId(view, trait.SECOND_POINTER_COUNT);
+  const node_btree = trait.readId(view, trait.SECOND_POINTER);
 
   await loadNodeTree(node_btree, node_btree_count, 0x21, Infinity);
 
