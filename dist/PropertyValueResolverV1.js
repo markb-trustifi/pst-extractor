@@ -30,6 +30,7 @@ const PT_CLSID = 0x48;
 const PT_SHORT = 0x2;
 const PT_FLOAT = 0x4;
 const PT_MV_UNICODE = 0x101F;
+const PT_MV_STRING8 = 0x101E;
 const PT_MV_BINARY = 0x1102;
 const PT_MV_LONG = 0x1003;
 const PT_MV_CLSID = 0x1048;
@@ -168,6 +169,24 @@ typeConverters[PT_MV_CLSID] = (arg) => __awaiter(void 0, void 0, void 0, functio
                 const to = 16 * (x + 1);
                 const elementBytes = bytes.slice(from, to);
                 list.push(elementBytes);
+            }
+        }
+    }
+    return list;
+});
+typeConverters[PT_MV_STRING8] = (arg) => __awaiter(void 0, void 0, void 0, function* () {
+    const heap = arg.view.getUint32(0, true);
+    const list = [];
+    if (heap !== 0) {
+        const bytes = yield arg.resolveHeap(heap);
+        if (bytes !== undefined) {
+            const view = new DataView(bytes);
+            const count = view.getUint32(0, true);
+            for (let x = 0; x < count - 1; x++) {
+                const from = view.getUint32(4 + 4 * (x), true);
+                const to = view.getUint32(4 + 4 * (x + 1), true);
+                const elementBytes = bytes.slice(from, to);
+                list.push(yield arg.convertAnsiString(elementBytes));
             }
         }
     }

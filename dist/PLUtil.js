@@ -94,6 +94,104 @@ function willUnzip1(data) {
         return data;
     });
 }
+var ptr32;
+(function (ptr32) {
+    function readBlockPtr(view, offset, footer) {
+        const array = [];
+        for (let x = 0; x < footer.itemCount; x++) {
+            const top = offset + 12 * x;
+            const blockId = view.getUint32(top + 0, true);
+            array.push({
+                blockId,
+                offset: new long_1.default(view.getUint32(top + 4, true)),
+                size: view.getUint16(top + 8, true),
+                isData: (blockId & 2) === 0,
+            });
+        }
+        return array;
+    }
+    ptr32.readBlockPtr = readBlockPtr;
+    function readTablePtr(view, offset, footer) {
+        const array = [];
+        for (let x = 0; x < footer.itemCount; x++) {
+            const top = offset + 12 * x;
+            array.push({
+                start: new long_1.default(view.getUint32(top + 0, true)),
+                u1: new long_1.default(view.getUint32(top + 4, true)),
+                offset: new long_1.default(view.getUint32(top + 8, true)),
+            });
+        }
+        return array;
+    }
+    ptr32.readTablePtr = readTablePtr;
+    function readNodePtr(view, offset, footer) {
+        const array = [];
+        for (let x = 0; x < footer.itemCount; x++) {
+            const top = offset + 16 * x;
+            array.push({
+                nodeId: view.getUint32(top + 0, true),
+                blockId: view.getUint32(top + 4, true),
+                subBlockId: view.getUint32(top + 8, true),
+                parentNodeId: view.getUint32(top + 12, true),
+            });
+        }
+        return array;
+    }
+    ptr32.readNodePtr = readNodePtr;
+    function readSLBlock(view, offset) {
+        const count = view.getUint16(offset + 2, true);
+        const entries = [];
+        for (let x = 0; x < count; x++) {
+            const top = offset + 4 + 12 * x;
+            entries.push({
+                nodeId: view.getUint32(top + 0, true),
+                blockId: view.getUint32(top + 4, true),
+                subBlockId: view.getUint32(top + 8, true),
+            });
+        }
+        return {
+            entries
+        };
+    }
+    ptr32.readSLBlock = readSLBlock;
+    function readXBlock(view, offset, itemCount) {
+        const entries = [];
+        for (let x = 0; x < itemCount; x++) {
+            const top = offset + 8 + 4 * x;
+            entries.push({
+                blockId: view.getUint32(top + 0, true),
+            });
+        }
+        return entries;
+    }
+    ptr32.readXBlock = readXBlock;
+    function readXXBlock(view, offset, itemCount) {
+        const entries = [];
+        for (let x = 0; x < itemCount; x++) {
+            const top = offset + 8 + 4 * x;
+            entries.push({
+                blockId: view.getUint32(top + 0, true),
+            });
+        }
+        return entries;
+    }
+    ptr32.readXXBlock = readXXBlock;
+    function readSIBlock(view, offset) {
+        const count = view.getUint16(offset + 2, true);
+        const entries = [];
+        for (let x = 0; x < count; x++) {
+            const top = offset + 4 + 12 * x;
+            entries.push({
+                nodeId: view.getUint32(top + 0, true),
+                blockId: view.getUint32(top + 4, true),
+            });
+        }
+        return {
+            entries
+        };
+    }
+    ptr32.readSIBlock = readSIBlock;
+})(ptr32 || (ptr32 = {}));
 var ptr64;
 (function (ptr64) {
     function readBlockPtr(view, offset, footer) {
@@ -192,6 +290,26 @@ var ptr64;
     }
     ptr64.readSIBlock = readSIBlock;
 })(ptr64 || (ptr64 = {}));
+const ver0x0e = {
+    BACKLINK_OFFSET: 0x1f8,
+    LEVEL_INDICATOR_OFFSET: 0x1f3,
+    ITEM_COUNT_OFFSET: 0x1f0,
+    ENC_OFFSET: 0x1cd,
+    SECOND_POINTER_COUNT: 0xB8,
+    SECOND_POINTER: 0xBC,
+    INDEX_POINTER_COUNT: 0xC0,
+    INDEX_POINTER: 0xC4,
+    BlockSize: 512,
+    readId: (view, offset) => new long_1.default(view.getUint32(offset, true)),
+    readBlockPtr: ptr32.readBlockPtr,
+    readTablePtr: ptr32.readTablePtr,
+    readNodePtr: ptr32.readNodePtr,
+    readSLBlock: ptr32.readSLBlock,
+    readSIBlock: ptr32.readSIBlock,
+    readXBlock: ptr32.readXBlock,
+    readXXBlock: ptr32.readXXBlock,
+    unzipHook: passThru1,
+};
 const ver0x17 = {
     BACKLINK_OFFSET: 0x1f8,
     LEVEL_INDICATOR_OFFSET: 0x1eb,
@@ -202,7 +320,7 @@ const ver0x17 = {
     INDEX_POINTER_COUNT: 0xE8,
     INDEX_POINTER: 0xF0,
     BlockSize: 512,
-    ReadId: readLong,
+    readId: readLong,
     readBlockPtr: ptr64.readBlockPtr,
     readTablePtr: ptr64.readTablePtr,
     readNodePtr: ptr64.readNodePtr,
@@ -222,7 +340,7 @@ const ver0x24 = {
     INDEX_POINTER_COUNT: 0xE8,
     INDEX_POINTER: 0xF0,
     BlockSize: 4096,
-    ReadId: readLong,
+    readId: readLong,
     readBlockPtr: ptr64.readBlockPtr,
     readTablePtr: ptr64.readTablePtr,
     readNodePtr: ptr64.readNodePtr,
@@ -249,6 +367,9 @@ function openLowPst(api) {
         const version = view.getUint8(10);
         let trait;
         if (false) { }
+        else if (version === 0x0e) {
+            trait = ver0x0e;
+        }
         else if (version === 0x17) {
             trait = ver0x17;
         }
@@ -296,7 +417,7 @@ function openLowPst(api) {
                 const footer = {
                     itemCount: view.getUint8(trait.ITEM_COUNT_OFFSET),
                     level: view.getUint8(trait.LEVEL_INDICATOR_OFFSET),
-                    thisId: trait.ReadId(view, trait.BACKLINK_OFFSET),
+                    thisId: trait.readId(view, trait.BACKLINK_OFFSET),
                 };
                 if (footer.thisId.neq(linku1)) {
                     throw new Error("blah 1");
@@ -327,8 +448,8 @@ function openLowPst(api) {
                 }
             });
         }
-        const block_btree_count = trait.ReadId(view, trait.INDEX_POINTER_COUNT);
-        const block_btree = trait.ReadId(view, trait.INDEX_POINTER);
+        const block_btree_count = trait.readId(view, trait.INDEX_POINTER_COUNT);
+        const block_btree = trait.readId(view, trait.INDEX_POINTER);
         yield loadBlockTree(block_btree, block_btree_count, long_1.default.ZERO);
         function loadNodeTree(offset, linku1, start_val, prevLevel) {
             return __awaiter(this, void 0, void 0, function* () {
@@ -337,7 +458,7 @@ function openLowPst(api) {
                 const footer = {
                     itemCount: view.getUint8(trait.ITEM_COUNT_OFFSET),
                     level: view.getUint8(trait.LEVEL_INDICATOR_OFFSET),
-                    thisId: trait.ReadId(view, trait.BACKLINK_OFFSET),
+                    thisId: trait.readId(view, trait.BACKLINK_OFFSET),
                 };
                 if (prevLevel !== Infinity) {
                     if (footer.level !== prevLevel - 1) {
@@ -373,8 +494,8 @@ function openLowPst(api) {
                 }
             });
         }
-        const node_btree_count = trait.ReadId(view, trait.SECOND_POINTER_COUNT);
-        const node_btree = trait.ReadId(view, trait.SECOND_POINTER);
+        const node_btree_count = trait.readId(view, trait.SECOND_POINTER_COUNT);
+        const node_btree = trait.readId(view, trait.SECOND_POINTER);
         yield loadNodeTree(node_btree, node_btree_count, 0x21, Infinity);
         function loadMainBlockTo(blockId, consumer) {
             return __awaiter(this, void 0, void 0, function* () {
