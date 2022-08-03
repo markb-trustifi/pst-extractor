@@ -880,6 +880,18 @@ export declare class PSTContact extends PSTMessage {
      */
     get anniversary(): Date | null;
     /**
+     * Specifies the phonetic pronunciation of the surname of the contact.
+     */
+    get yomiLastName(): string;
+    /**
+     * Specifies the phonetic pronunciation of the contact's given name.
+     */
+    get yomiFirstName(): string;
+    /**
+     * Specifies the phonetic pronunciation of the contact's company name.
+     */
+    get yomiCompanyName(): string;
+    /**
      * JSON stringify the object properties.
      * @returns {string}
      * @memberof PSTContact

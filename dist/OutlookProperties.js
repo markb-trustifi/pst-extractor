@@ -278,4 +278,7 @@ var OutlookProperties;
     OutlookProperties[OutlookProperties["PidLidTaskFRecurring"] = 33062] = "PidLidTaskFRecurring";
     OutlookProperties[OutlookProperties["PidLidTaskOwnership"] = 33065] = "PidLidTaskOwnership";
     OutlookProperties[OutlookProperties["PidLidTaskAcceptanceState"] = 33066] = "PidLidTaskAcceptanceState";
+    OutlookProperties[OutlookProperties["PidLidYomiLastName"] = 32813] = "PidLidYomiLastName";
+    OutlookProperties[OutlookProperties["PidLidYomiFirstName"] = 32812] = "PidLidYomiFirstName";
+    OutlookProperties[OutlookProperties["PidLidYomiCompanyName"] = 32814] = "PidLidYomiCompanyName";
 })(OutlookProperties = exports.OutlookProperties || (exports.OutlookProperties = {}));
