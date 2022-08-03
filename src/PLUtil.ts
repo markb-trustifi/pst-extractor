@@ -118,7 +118,7 @@ async function willUnzip1(data: ArrayBuffer): Promise<ArrayBuffer> {
     if (view.getUint16(0, true) === 0x9c78) {
       const arrayBuffer = await new Promise<ArrayBuffer>(
         (resolve, reject) => zlib.unzip(
-          data,
+          Buffer.from(data),
           (error, result) => {
             if (error) {
               reject(error);
@@ -877,6 +877,9 @@ export async function openLowPst(api: ReadFileApi): Promise<PLStore> {
       childNodeId: number,
       parentToString: string
     ): Promise<PLSubNode | undefined> {
+      if (blockId === 0) {
+        return undefined;
+      }
       const block = blockMap.get(blockId);
       if (block === undefined) {
         throw new Error(
