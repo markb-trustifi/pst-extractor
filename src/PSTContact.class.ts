@@ -1259,6 +1259,42 @@ export class PSTContact extends PSTMessage {
   }
 
   /**
+   * Specifies the phonetic pronunciation of the surname of the contact.
+   */
+  public get yomiLastName(): string {
+    return this.getStringItem(
+      this._rootProvider.getNameToIdMapItem(
+        OutlookProperties.PidLidYomiLastName,
+        OutlookProperties.PSETID_Address
+      )
+    )
+  }
+
+  /**
+   * Specifies the phonetic pronunciation of the contact's given name.
+   */
+  public get yomiFirstName(): string {
+    return this.getStringItem(
+      this._rootProvider.getNameToIdMapItem(
+        OutlookProperties.PidLidYomiFirstName,
+        OutlookProperties.PSETID_Address
+      )
+    )
+  }
+
+  /**
+   * Specifies the phonetic pronunciation of the contact's company name.
+   */
+  public get yomiCompanyName(): string {
+    return this.getStringItem(
+      this._rootProvider.getNameToIdMapItem(
+        OutlookProperties.PidLidYomiCompanyName,
+        OutlookProperties.PSETID_Address
+      )
+    )
+  }
+
+  /**
    * JSON stringify the object properties.
    * @returns {string}
    * @memberof PSTContact
@@ -1377,6 +1413,9 @@ export class PSTContact extends PSTMessage {
         freeBusyLocation: this.freeBusyLocation,
         birthday: this.birthday,
         anniversary: this.anniversary,
+        yomiLastName: this.yomiLastName,
+        yomiFirstName: this.yomiFirstName,
+        yomiCompanyName: this.yomiCompanyName,
       },
       this
     )
