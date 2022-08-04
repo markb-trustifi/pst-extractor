@@ -15,11 +15,16 @@ function copy<T>(rows: T[]): T[] {
   )
 }
 
+/**
+ * TCOLDESC
+ * 
+ * @see [[MS-PST]: TCOLDESC | Microsoft Docs](https://docs.microsoft.com/en-us/openspecs/office_file_formats/ms-pst/3a2f63cf-bb40-4559-910c-e55ec43d9cbb)
+ */
 interface Column {
-  ref_type: number;
   type: number;
-  ind2_off: number;
-  size: number;
+  key: number;
+  ibData: number;
+  cbData: number;
 }
 
 export async function getTableContext(
@@ -32,64 +37,64 @@ export async function getTableContext(
 
   const reader = heap.getReader();
 
-  const header_data = await reader.getHeapBuffers(heap.userRootHnid);
-  if (header_data.length !== 1) {
+  const headerData = await reader.getHeapBuffers(heap.userRootHnid);
+  if (headerData.length !== 1) {
     throw new Error("must be single");
   }
-  const headerView = new DataView(header_data[0]);
+  const headerView = new DataView(headerData[0]);
 
-  const seven_c = headerView.getUint8(0);
-  const num_list = headerView.getUint8(1);
-  const rec_size = headerView.getUint16(8, true);
-  const b_five_offset = headerView.getUint32(10, true);
-  const rows_offset = headerView.getUint32(14, true);
+  const tcSig = headerView.getUint8(0);
+  const numCols = headerView.getUint8(1);
+  const numRowBytes = headerView.getUint16(8, true);
+  const hidRowIndex = headerView.getUint32(10, true);
+  const hnidRows = headerView.getUint32(14, true);
 
-  var index_data = header_data[0].slice(22);
+  var tColDesc = headerData[0].slice(22);
 
-  const schema: Column[] = Array.from(splitPer(index_data, 8))
+  const schema: Column[] = Array.from(splitPer(tColDesc, 8))
     .map(
       it => {
         const view = new DataView(it);
         return {
-          ref_type: view.getUint16(0, true),
-          type: view.getUint16(2, true),
-          ind2_off: view.getUint16(4, true),
-          size: view.getUint8(6),
+          type: view.getUint16(0, true),
+          key: view.getUint16(2, true),
+          ibData: view.getUint16(4, true),
+          cbData: view.getUint8(6),
         } as Column;
       }
     );
 
-  if (num_list !== schema.length) {
+  if (numCols !== schema.length) {
     throw new Error("schema length not matched");
   }
-  if (seven_c !== 0x7c) {
+  if (tcSig !== 0x7c) {
     throw new Error("seven_c is not satisfied");
   }
 
-  const min_size = schema.reduce((accum, it) => accum + it.size, 0);
+  //const min_size = schema.reduce((accum, it) => accum + it.cbData, 0);
 
-  const header_data2 = await reader.getHeapBuffers(b_five_offset);
-  if (header_data2.length !== 1) {
+  const rowIndexData = await reader.getHeapBuffers(hidRowIndex);
+  if (rowIndexData.length !== 1) {
     throw new Error("must be single");
   }
 
-  const header2View = new DataView(header_data2[0]);
+  const rowIndexView = new DataView(rowIndexData[0]);
 
-  const signature = header2View.getUint32(0, true);
-  const offset2 = header2View.getUint32(4, true);
+  const signature = rowIndexView.getUint32(0, true);
+  const offset2 = rowIndexView.getUint32(4, true);
 
   if (signature != 0x000404b5 && signature != 0x000204b5) {
-    throw new Error("unhandled block signature");
+    throw new Error(`unhandled block signature 0x${signature.toString(16)}`);
   }
 
-  const rows_pages = (rows_offset !== 0)
-    ? await reader.getHeapBuffers(rows_offset)
+  const rows_pages = (hnidRows !== 0)
+    ? await reader.getHeapBuffers(hnidRows)
     : [];
 
   //const data2 = await reader.getHeapBuffers(offset2);
 
   const rows_per_page = (rows_pages.length !== 0)
-    ? rows_pages[0].byteLength / rec_size
+    ? rows_pages[0].byteLength / numRowBytes
     : 0;
 
   function get_record(record_index: number): ArrayBuffer {
@@ -97,25 +102,25 @@ export async function getTableContext(
     const heap_index = (record_index % rows_per_page) | 0;
 
     const record = rows_pages[page_index].slice(
-      rec_size * (heap_index + 0),
-      rec_size * (heap_index + 1)
+      numRowBytes * (heap_index + 0),
+      numRowBytes * (heap_index + 1)
     );
-    if (record.byteLength !== rec_size) {
-      throw new Error(`get_record(${record_index}) (${rows_pages.map(it => it.byteLength).join(",")}) ${record.byteLength} < ${rec_size} EOS`);
+    if (record.byteLength !== numRowBytes) {
+      throw new Error(`get_record(${record_index}) ${rows_per_page} (${rows_pages.map(it => it.byteLength).join(",")}) ${record.byteLength} < ${numRowBytes} EOS`);
     }
     return record;
   }
 
-  const count = rows_pages.reduce((accum, it) => (accum + it.byteLength / rec_size) | 0, 0);
+  const count = rows_pages.reduce((accum, it) => (accum + it.byteLength / numRowBytes) | 0, 0);
 
   async function listRaw(record: number): Promise<RawProperty[]> {
     const rowData = get_record(record);
     const list: RawProperty[] = [];
     for (let column of schema) {
       list.push({
-        key: column.type,
-        type: column.ref_type,
-        value: rowData.slice(column.ind2_off, column.ind2_off + column.size),
+        key: column.key,
+        type: column.type,
+        value: rowData.slice(column.ibData, column.ibData + column.cbData),
       });
     }
     return list;
