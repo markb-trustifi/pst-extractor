@@ -453,7 +453,7 @@ export class PSTMessage extends PSTObject {
                   throw new Error("ltpRowId not found");
                 }
                 if (typeof ltpRowId.value !== 'number') {
-                  throw new Error("ltpRowId invalid type");
+                  throw new Error(`ltpRowId type '${typeof ltpRowId.value}' must be 'number'`);
                 }
 
 

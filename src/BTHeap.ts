@@ -18,27 +18,51 @@ export async function getBTHeapReaderFrom(
   const bIdxLevels = headerView.getUint8(3);
   const hidRoot = headerView.getUint32(4, true);
 
-  if (bIdxLevels != 0) {
-    throw new Error("bIdxLevels must be 0 for current implementation");
+  const list: BTHeapEntry[] = [];
+
+  async function recursive(hid: number, level: number) {
+    if (hid !== 0) {
+      if (level === 0) {
+        const recordSize = cbKey + cbEnt;
+        const records = (await heap.getHeapBuffers(hid));
+        if (records.length !== 1) {
+          throw new Error(`records.length ${records.length} must be single`);
+        }
+        const record = records[0];
+        const numRecords = Math.floor(record.byteLength / recordSize);
+        if ((record.byteLength % recordSize) !== 0) {
+          throw new Error();
+        }
+        for (let x = 0; x < numRecords; x++) {
+          const top = recordSize * x;
+          list.push({
+            key: record.slice(top, top + cbKey),
+            data: record.slice(top + cbKey),
+          });
+        }
+      }
+      else {
+        const recordSize = cbKey + 4;
+        const records = (await heap.getHeapBuffers(hid));
+        if (records.length !== 1) {
+          throw new Error(`records.length ${records.length} must be single`);
+        }
+        const record = records[0];
+        const recordView = new DataView(record);
+        const numRecords = Math.floor(record.byteLength / recordSize);
+        if ((record.byteLength % recordSize) !== 0) {
+          throw new Error();
+        }
+        for (let x = 0; x < numRecords; x++) {
+          const top = recordSize * x;
+          const hidInner = recordView.getUint32(top + cbKey, true);
+          await recursive(hidInner, level - 1);
+        }
+      }
+    }
   }
 
-  const list: BTHeapEntry[] = [];
-  if (hidRoot !== 0) {
-    const recordSize = cbKey + cbEnt;
-    const records = (await heap.getHeapBuffers(hidRoot));
-    if (records.length !== 1) {
-      throw new Error(`records.length ${records.length} must be single`);
-    }
-    const record = records[0];
-    const numRecords = Math.floor(record.byteLength / recordSize);
-    for (let x = 0; x < numRecords; x++) {
-      const top = recordSize * x;
-      list.push({
-        key: record.slice(top, top + cbKey),
-        data: record.slice(top + cbKey),
-      });
-    }
-  }
+  await recursive(hidRoot, bIdxLevels);
 
   return {
     async list() {

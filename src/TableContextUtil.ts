@@ -31,6 +31,7 @@ interface Column {
   key: number;
   ibData: number;
   cbData: number;
+  iBit: number;
 }
 
 export async function getTableContext(
@@ -67,6 +68,7 @@ export async function getTableContext(
           key: view.getUint16(2, true),
           ibData: view.getUint16(4, true),
           cbData: view.getUint8(6),
+          iBit: view.getUint8(7),
         } as Column;
       }
     );
@@ -80,7 +82,7 @@ export async function getTableContext(
 
   //const min_size = schema.reduce((accum, it) => accum + it.cbData, 0);
 
-  const rowIndex = getBTHeapReaderFrom(reader, hidRowIndex);
+  //const rowIndex = getBTHeapReaderFrom(reader, hidRowIndex);
 
   const rows_pages = (hnidRows !== 0)
     ? await reader.getHeapBuffers(hnidRows)
@@ -123,11 +125,11 @@ export async function getTableContext(
   async function listRaw(index: number): Promise<RawProperty[]> {
     const record = get_record(index);
     const list: RawProperty[] = [];
-    for (let [x, column] of schema.entries()) {
+    for (let column of schema) {
       list.push({
         key: column.key,
         type: column.type,
-        value: record.ceb[x]
+        value: record.ceb[column.iBit]
           ? record.buffer.slice(column.ibData, column.ibData + column.cbData)
           : new ArrayBuffer(0),
       });
