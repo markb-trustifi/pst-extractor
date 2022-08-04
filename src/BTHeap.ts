@@ -37,7 +37,7 @@ export async function getBTHeapReaderFrom(
           const top = recordSize * x;
           list.push({
             key: record.slice(top, top + cbKey),
-            data: record.slice(top + cbKey),
+            data: record.slice(top + cbKey, top + recordSize),
           });
         }
       }

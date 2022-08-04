@@ -28,9 +28,14 @@ describe('tree traversal tests', () => {
     }
   );
 
-  it.each(sourceFiles)("scan %s", async (sourceFile: string) => {
-    await scan(sourceFile);
-  }, 60000);
+  if (sourceFiles.length !== 0) {
+    it.each(sourceFiles)("scan %s", async (sourceFile: string) => {
+      await scan(sourceFile);
+    }, 1000 * 60 * 60);
+  }
+  else {
+    it("no files given", function () { });
+  }
 });
 
 async function scan(sourceFile: string): Promise<void> {

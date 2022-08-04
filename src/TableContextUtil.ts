@@ -108,9 +108,9 @@ export async function getTableContext(
 
     const ceb: boolean[] = [];
     {
-      const rgCEB = new Uint8Array(buffer, cebOffset);
+      const rgCEB = new Uint8Array(buffer.slice(cebOffset));
       for (let x = 0; x < numCols; x++) {
-        ceb[x] = (rgCEB[x / 8] & (1 << (7 - (x % 8)))) != 0;
+        ceb.push((rgCEB[(x / 8) | 0] & (1 << (7 - (x % 8)))) != 0);
       }
     }
 

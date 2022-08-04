@@ -3,7 +3,6 @@ import { OutlookProperties } from './OutlookProperties'
 import { PropertyFinder } from './PAUtil';
 import { PLNode } from './PLNode';
 import { PLSubNode } from './PLSubNode';
-import { PSTFile } from './PSTFile.class'
 import { PSTObject } from './PSTObject.class'
 import { RootProvider } from './RootProvider';
 
@@ -107,6 +106,7 @@ export class PSTRecipient extends PSTObject {
   public toJSON(): any {
     const clone = Object.assign(
       {
+        displayName: this.displayName,
         smtpAddress: this.smtpAddress,
         recipientType: this.recipientType,
         addrType: this.addrType,
