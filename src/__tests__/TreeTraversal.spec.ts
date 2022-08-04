@@ -28,9 +28,9 @@ describe('tree traversal tests', () => {
     }
   );
 
-  it.each(sourceFiles)("scan", async (sourceFile: string) => {
+  it.each(sourceFiles)("scan %s", async (sourceFile: string) => {
     await scan(sourceFile);
-  });
+  }, 60000);
 });
 
 async function scan(sourceFile: string): Promise<void> {
@@ -51,7 +51,7 @@ async function scanTree(folder: PSTFolder, depth: number): Promise<void> {
     //console.log(prefix(`@ ${subFolder.displayName}`));
     await scanTree(subFolder, depth + 1);
   }
-  for (let item of (await (await folder.getEmails()))) {
+  for (let item of (await folder.getEmails())) {
     //console.log(prefix(`- ${item.displayName}`));
     (await item.getAttachments());
     (await item.getRecipients());

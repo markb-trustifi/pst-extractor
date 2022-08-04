@@ -1,4 +1,5 @@
 import { copyFile } from "fs";
+import { getBTHeapReaderFrom } from "./BTHeap";
 import { PHNodeHeap } from "./PHNodeHeap";
 import { splitPer } from "./PLMisc";
 import { Property } from "./Property";
@@ -13,6 +14,11 @@ function copy<T>(rows: T[]): T[] {
   return rows.map(
     it => Object.assign({}, it)
   )
+}
+
+interface Record {
+  buffer: ArrayBuffer,
+  ceb: boolean[],
 }
 
 /**
@@ -45,6 +51,7 @@ export async function getTableContext(
 
   const tcSig = headerView.getUint8(0);
   const numCols = headerView.getUint8(1);
+  const cebOffset = headerView.getUint16(6, true);
   const numRowBytes = headerView.getUint16(8, true);
   const hidRowIndex = headerView.getUint32(10, true);
   const hnidRows = headerView.getUint32(14, true);
@@ -73,19 +80,7 @@ export async function getTableContext(
 
   //const min_size = schema.reduce((accum, it) => accum + it.cbData, 0);
 
-  const rowIndexData = await reader.getHeapBuffers(hidRowIndex);
-  if (rowIndexData.length !== 1) {
-    throw new Error("must be single");
-  }
-
-  const rowIndexView = new DataView(rowIndexData[0]);
-
-  const signature = rowIndexView.getUint32(0, true);
-  const offset2 = rowIndexView.getUint32(4, true);
-
-  if (signature != 0x000404b5 && signature != 0x000204b5) {
-    throw new Error(`unhandled block signature 0x${signature.toString(16)}`);
-  }
+  const rowIndex = getBTHeapReaderFrom(reader, hidRowIndex);
 
   const rows_pages = (hnidRows !== 0)
     ? await reader.getHeapBuffers(hnidRows)
@@ -94,33 +89,47 @@ export async function getTableContext(
   //const data2 = await reader.getHeapBuffers(offset2);
 
   const rows_per_page = (rows_pages.length !== 0)
-    ? rows_pages[0].byteLength / numRowBytes
+    ? Math.floor(rows_pages[0].byteLength / numRowBytes)
     : 0;
 
-  function get_record(record_index: number): ArrayBuffer {
+  function get_record(record_index: number): Record {
     const page_index = (record_index / rows_per_page) | 0;
     const heap_index = (record_index % rows_per_page) | 0;
 
-    const record = rows_pages[page_index].slice(
+    const buffer = rows_pages[page_index].slice(
       numRowBytes * (heap_index + 0),
       numRowBytes * (heap_index + 1)
     );
-    if (record.byteLength !== numRowBytes) {
-      throw new Error(`get_record(${record_index}) ${rows_per_page} (${rows_pages.map(it => it.byteLength).join(",")}) ${record.byteLength} < ${numRowBytes} EOS`);
+    if (buffer.byteLength !== numRowBytes) {
+      throw new Error(`get_record(${record_index}) ${rows_per_page} (${rows_pages.map(it => it.byteLength).join(",")}) ${buffer.byteLength} < ${numRowBytes} EOS`);
     }
-    return record;
+
+    const ceb: boolean[] = [];
+    {
+      const rgCEB = new Uint8Array(buffer, cebOffset);
+      for (let x = 0; x < numCols; x++) {
+        ceb[x] = (rgCEB[x / 8] & (1 << (7 - (x % 8)))) != 0;
+      }
+    }
+
+    return {
+      buffer,
+      ceb,
+    };
   }
 
   const count = rows_pages.reduce((accum, it) => (accum + it.byteLength / numRowBytes) | 0, 0);
 
-  async function listRaw(record: number): Promise<RawProperty[]> {
-    const rowData = get_record(record);
+  async function listRaw(index: number): Promise<RawProperty[]> {
+    const record = get_record(index);
     const list: RawProperty[] = [];
-    for (let column of schema) {
+    for (let [x, column] of schema.entries()) {
       list.push({
         key: column.key,
         type: column.type,
-        value: rowData.slice(column.ibData, column.ibData + column.cbData),
+        value: record.ceb[x]
+          ? record.buffer.slice(column.ibData, column.ibData + column.cbData)
+          : new ArrayBuffer(0),
       });
     }
     return list;
@@ -134,12 +143,14 @@ export async function getTableContext(
         list.push({
           key: rawProp.key,
           type: rawProp.type,
-          value: await resolver.resolveValueOf(
-            rawProp.key,
-            rawProp.type,
-            rawProp.value,
-            reader
-          )
+          value: (rawProp.value.byteLength !== 0)
+            ? await resolver.resolveValueOf(
+              rawProp.key,
+              rawProp.type,
+              rawProp.value,
+              reader
+            )
+            : undefined
         });
       }
       catch (ex) {

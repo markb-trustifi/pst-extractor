@@ -734,7 +734,7 @@ export async function openLowPst(api: ReadFileApi): Promise<PLStore> {
     if (blockId === 0) {
       return;
     }
-    const block = blockMap.get(blockId);
+    const block = blockMap.get(blockId & ~1);
     if (block === undefined) {
       throw new Error(`blockId=${blockId} not found`);
     }
@@ -880,7 +880,7 @@ export async function openLowPst(api: ReadFileApi): Promise<PLStore> {
       if (blockId === 0) {
         return undefined;
       }
-      const block = blockMap.get(blockId);
+      const block = blockMap.get(blockId & ~1);
       if (block === undefined) {
         throw new Error(
           `blockId=${blockId}`
