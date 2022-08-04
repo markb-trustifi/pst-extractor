@@ -80,7 +80,7 @@ function willUnzip1(data) {
         if (data.byteLength >= 4) {
             const view = new DataView(data);
             if (view.getUint16(0, true) === 0x9c78) {
-                const arrayBuffer = yield new Promise((resolve, reject) => zlib.unzip(data, (error, result) => {
+                const arrayBuffer = yield new Promise((resolve, reject) => zlib.unzip(Buffer.from(data), (error, result) => {
                     if (error) {
                         reject(error);
                     }
@@ -610,6 +610,9 @@ function openLowPst(api) {
             }
             function getChildOf(blockId, childNodeId, parentToString) {
                 return __awaiter(this, void 0, void 0, function* () {
+                    if (blockId === 0) {
+                        return undefined;
+                    }
                     const block = blockMap.get(blockId);
                     if (block === undefined) {
                         throw new Error(`blockId=${blockId}`
