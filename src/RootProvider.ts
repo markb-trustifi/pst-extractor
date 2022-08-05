@@ -1,3 +1,4 @@
+import { PropertyFinder } from "./PAUtil";
 import { PLNode } from "./PLNode";
 import { PLSubNode } from "./PLSubNode";
 import { PropertyValueResolver } from "./PropertyValueResolver"
@@ -7,6 +8,6 @@ import { PSTMessage } from "./PSTMessage.class";
 export interface RootProvider {
   resolver: PropertyValueResolver;
   getNameToIdMapItem(key: number, idx: number): number;
-  getItemOf(node: PLNode, subNode: PLSubNode): Promise<PSTMessage>;
+  getItemOf(node: PLNode, subNode: PLSubNode, propertyFinder: PropertyFinder | undefined): Promise<PSTMessage>;
   getFolderOf(node: PLNode): Promise<PSTFolder>;
 }

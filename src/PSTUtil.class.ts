@@ -11,7 +11,7 @@ import { PLNode } from './PLNode'
 import { getHeapFrom } from './PHUtil'
 import { getPropertyContext } from './PropertyContextUtil'
 import { PropertyValueResolver } from './PropertyValueResolver'
-import { createPropertyFinder } from './PAUtil'
+import { createPropertyFinder, PropertyFinder } from './PAUtil'
 import { PLSubNode } from './PLSubNode'
 import { RootProvider } from './RootProvider'
 
@@ -719,15 +719,20 @@ export class PSTUtil {
     rootProvider: RootProvider,
     node: PLNode,
     subNode: PLSubNode,
-    resolver: PropertyValueResolver
+    resolver: PropertyValueResolver,
+    propertyFinderDelegation: PropertyFinder | undefined,
   ): Promise<PSTMessage> {
-    const heap = await getHeapFrom(subNode);
-    const pc = await getPropertyContext(
-      heap,
-      resolver
-    );
-    const propList = await pc.list();
-    const propertyFinder = createPropertyFinder(propList);
+    if (propertyFinderDelegation === undefined) {
+      const heap = await getHeapFrom(subNode);
+      const pc = await getPropertyContext(
+        heap,
+        resolver
+      );
+      const propList = await pc.list();
+      propertyFinderDelegation = createPropertyFinder(propList);
+    }
+
+    const propertyFinder = propertyFinderDelegation;
 
     const item = propertyFinder.findByKey(0x001a);
     let messageClass = ''

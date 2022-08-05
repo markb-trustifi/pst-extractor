@@ -105,7 +105,8 @@ export class PSTAttachment extends PSTObject {
 
           return await this._rootProvider.getItemOf(
             this._node,
-            subNode
+            subNode,
+            undefined
           );
         }
       }

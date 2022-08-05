@@ -51,7 +51,10 @@ export class PSTFolder extends PSTObject {
   private async getEmailsProvider(): Promise<CollectionAsyncProvider<PSTMessage>> {
     return this._emailsProvider.getOrCreate(
       async () => {
-        const targets: PLNode[] = [];
+        const targets: {
+          node: PLNode,
+          propertyFinder: PropertyFinder | undefined
+        }[] = [];
 
         if (this.getNodeType() === PSTUtil.NID_TYPE_SEARCH_FOLDER) {
           // some folder types don't have children:
@@ -73,13 +76,16 @@ export class PSTFolder extends PSTObject {
 
             const rows = await tc.rows();
 
-            const orderOfNodeId = [];
+            const orderOfNodes: {
+              nodeId: number,
+              propertyFinder: PropertyFinder,
+            }[] = [];
 
             for (let row of rows) {
               const props = createPropertyFinder(await row.list());
               const prop = props.findByKey(0x67f2);
               if (prop !== undefined && typeof prop.value === 'number') {
-                orderOfNodeId.push(prop.value);
+                orderOfNodes.push({ nodeId: prop.value, propertyFinder: props });
               }
             }
 
@@ -88,10 +94,13 @@ export class PSTFolder extends PSTObject {
                 .map(node => [node.nodeId, node])
             );
 
-            for (let nodeId of orderOfNodeId) {
+            for (let { nodeId, propertyFinder } of orderOfNodes) {
               const found = childNodeIdMap.get(nodeId);
               if (found !== undefined) {
-                targets.push(found);
+                targets.push({
+                  node: found,
+                  propertyFinder: propertyFinder,
+                });
               }
             }
           }
@@ -100,7 +109,7 @@ export class PSTFolder extends PSTObject {
             // fallback to children as listed in the descriptor b-tree
             for (let node of this._node.getChildren()) {
               if (this.getNodeType(node.nodeId) === PSTUtil.NID_TYPE_NORMAL_MESSAGE) {
-                targets.push(node);
+                targets.push({ node, propertyFinder: undefined });
               }
             }
           }
@@ -113,9 +122,21 @@ export class PSTFolder extends PSTObject {
               throw new RangeError(`email index ${index} out of range. maximum index is ${targets.length - 1}.`);
             }
             return await this._rootProvider.getItemOf(
-              targets[index],
-              targets[index].getSubNode()
+              targets[index].node,
+              targets[index].node.getSubNode(),
+              undefined // targets[index].propertyFinder
             );
+
+            // Some important properties are not provided thru table context, like:
+            //
+            // - msg.senderName
+            // - msg.sentRepresentingEmailAddress
+            // - appt.localeId
+            // - contact.initials
+            // - activity.bodyPrefix
+            // 
+            // Thus we need to load full set of properties
+            // from property context of corresponding sub node.
           }
         );
       }

@@ -227,12 +227,17 @@ export class PSTFile {
     return output
   }
 
-  private async getItemOf(node: PLNode, subNode: PLSubNode): Promise<PSTMessage> {
+  private async getItemOf(
+    node: PLNode,
+    subNode: PLSubNode,
+    propertyFinder: PropertyFinder | undefined,
+  ): Promise<PSTMessage> {
     return await PSTUtil.createAppropriatePSTMessageObject(
       this.getRootProvider(),
       node,
       subNode,
-      this._resolver
+      this._resolver,
+      propertyFinder
     );
   }
 
