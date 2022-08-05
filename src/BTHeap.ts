@@ -6,7 +6,7 @@ export async function getBTHeapReaderFrom(
 ): Promise<BTHeapReader> {
   const header = await heap.getHeapBuffers(hnid);
   if (header.length !== 1) {
-    throw new Error(`header.length ${header.length} must be single`);
+    throw new Error(`btree heap buffer must be single`);
   }
   const headerView = new DataView(header[0]);
   const bTypeBTH = 0xB5;
@@ -26,13 +26,10 @@ export async function getBTHeapReaderFrom(
         const recordSize = cbKey + cbEnt;
         const records = (await heap.getHeapBuffers(hid));
         if (records.length !== 1) {
-          throw new Error(`records.length ${records.length} must be single`);
+          throw new Error(`btree heap record must be single`);
         }
         const record = records[0];
         const numRecords = Math.floor(record.byteLength / recordSize);
-        if ((record.byteLength % recordSize) !== 0) {
-          throw new Error();
-        }
         for (let x = 0; x < numRecords; x++) {
           const top = recordSize * x;
           list.push({
@@ -45,14 +42,11 @@ export async function getBTHeapReaderFrom(
         const recordSize = cbKey + 4;
         const records = (await heap.getHeapBuffers(hid));
         if (records.length !== 1) {
-          throw new Error(`records.length ${records.length} must be single`);
+          throw new Error(`btree intermediate record must be single`);
         }
         const record = records[0];
         const recordView = new DataView(record);
         const numRecords = Math.floor(record.byteLength / recordSize);
-        if ((record.byteLength % recordSize) !== 0) {
-          throw new Error();
-        }
         for (let x = 0; x < numRecords; x++) {
           const top = recordSize * x;
           const hidInner = recordView.getUint32(top + cbKey, true);

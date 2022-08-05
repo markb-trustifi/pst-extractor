@@ -48,10 +48,14 @@ export async function getHeapFrom(node: PLSubNode): Promise<PHNodeHeap> {
             // this is HID (heap)
             const data = data_chunks.get(hnid);
             if (data === undefined) {
-              throw new Error(`heap 0x${hnid.toString(16)} of ${node} not found`);
+              throw new Error(`heap=0x${hnid.toString(16)} of ${node} not found`);
             }
             return [data];
           }
+        },
+
+        toString() {
+          return `reader of ${node}`;
         },
       } as PHNodeHeapReader;
     },

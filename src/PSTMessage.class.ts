@@ -460,7 +460,7 @@ export class PSTMessage extends PSTObject {
                 // xxx2 is for properties in PropertyContext in dedicated subData
                 const child2 = await this._subNode.getChildBy(ltpRowId.value);
                 if (child2 === undefined) {
-                  throw new Error();
+                  throw new Error(`ltpRowId ${ltpRowId.value} not found from ${this._subNode}`);
                 }
 
                 const heap2 = await getHeapFrom(child2);

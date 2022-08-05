@@ -265,7 +265,7 @@ export class PropertyValueResolverV1 implements PropertyValueResolver {
 
     const converter = typeConverters[type];
     if (converter === undefined) {
-      throw new Error(`property type 0x${type.toString(16)} is unknown`);
+      throw new Error(`property type 0x${type.toString(16)} is unknown. please define a typeConverter in PropertyValueResolverV1.ts`);
     }
 
     return await converter(

@@ -46,7 +46,7 @@ export async function getTableContext(
 
   const headerData = await reader.getHeapBuffers(heap.userRootHnid);
   if (headerData.length !== 1) {
-    throw new Error("must be single");
+    throw new Error("table context header buffer must be single");
   }
   const headerView = new DataView(headerData[0]);
 
@@ -77,7 +77,7 @@ export async function getTableContext(
     throw new Error("schema length not matched");
   }
   if (tcSig !== 0x7c) {
-    throw new Error("seven_c is not satisfied");
+    throw new Error("tcSig is not 0x7c");
   }
 
   //const min_size = schema.reduce((accum, it) => accum + it.cbData, 0);
@@ -103,7 +103,7 @@ export async function getTableContext(
       numRowBytes * (heap_index + 1)
     );
     if (buffer.byteLength !== numRowBytes) {
-      throw new Error(`get_record(${record_index}) ${rows_per_page} (${rows_pages.map(it => it.byteLength).join(",")}) ${buffer.byteLength} < ${numRowBytes} EOS`);
+      throw new Error(`get_record(${record_index}) is reaching EOF while reading record. The heap is ${reader}`);
     }
 
     const ceb: boolean[] = [];

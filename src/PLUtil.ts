@@ -37,7 +37,7 @@ function surelyReader(readFile: ReadFile): ReadFile {
   return async (buffer: ArrayBuffer, offset: number, length: number, position: number): Promise<number> => {
     const bytesRead = await readFile(buffer, offset, length, position);
     if (bytesRead !== length) {
-      throw new Error("EOS");
+      throw new Error(`file reader must provide buffer ${length} bytes from position ${position}, while we got ${bytesRead} bytes`);
     }
     return length;
   };
@@ -627,17 +627,17 @@ export async function openLowPst(api: ReadFileApi): Promise<PLStore> {
     } as NodeFooter;
 
     if (footer.thisId.neq(linku1)) {
-      throw new Error("blah 1");
+      throw new Error(`block buffer seems to be broken. footer id is ${footer.thisId.toNumber()}, while ${linku1.toNumber()} is expected`);
     }
 
     if (footer.level === 0) {
       const array = trait.readBlockPtr(view, 0, footer);
       for (let x = 0; x < footer.itemCount; x++) {
         if (x === 0 && start_val.neq(0) && start_val.neq(array[x].blockId)) {
-          throw new Error("blah 3");
+          throw new Error(`block buffer seems to be broken. first blockId is ${array[x].blockId}, while ${start_val.toNumber()} is expected`);
         }
         if (array[x].blockId === 0) {
-          throw new Error("OHNO");
+          throw new Error(`blockId must not be 0`);
         }
         blockMap.set(
           array[x].blockId & ~1,
@@ -649,10 +649,10 @@ export async function openLowPst(api: ReadFileApi): Promise<PLStore> {
       const array = trait.readTablePtr(view, 0, footer);
       for (let x = 0; x < footer.itemCount; x++) {
         if (x === 0 && start_val.neq(0) && start_val.neq(array[x].start)) {
-          throw new Error("blah 3");
+          throw new Error(`block buffer seems to be broken. first table id is ${array[x].start.toNumber()}, while ${start_val.toNumber()} is expected`);
         }
         if (array[x].start.eq(0)) {
-          throw new Error("OHNO");
+          throw new Error(`table id must not be 0`);
         }
         await loadBlockTree(
           array[x].offset,
@@ -680,19 +680,19 @@ export async function openLowPst(api: ReadFileApi): Promise<PLStore> {
 
     if (prevLevel !== Infinity) {
       if (footer.level !== prevLevel - 1) {
-        throw new Error("ohno");
+        throw new Error(`node level descending mismatched`);
       }
     }
 
     if (footer.thisId.neq(linku1)) {
-      throw new Error("blah1");
+      throw new Error(`node buffer seems to be broken. footer id is ${footer.thisId.toNumber()}, while ${linku1.toNumber()} is expected`);
     }
 
     if (footer.level === 0) {
       const array = trait.readNodePtr(view, 0, footer);
       for (let x = 0; x < footer.itemCount; x++) {
         if (x === 0 && start_val !== (0) && start_val !== (array[x].nodeId)) {
-          throw new Error("blah 3");
+          throw new Error(`node buffer seems to be broken. first nodeId is ${array[x].nodeId}, while ${start_val} is expected`);
         }
         if (array[x].nodeId === 0) {
           break;
@@ -707,10 +707,10 @@ export async function openLowPst(api: ReadFileApi): Promise<PLStore> {
       const array = trait.readTablePtr(view, 0, footer);
       for (let x = 0; x < footer.itemCount; x++) {
         if (x === 0 && start_val !== (0) && array[x].start.neq(start_val)) {
-          throw new Error("blah 3");
+          throw new Error(`node buffer seems to be broken. table id is ${array[x].start.toNumber()}, while ${start_val} is expected`);
         }
         if (array[x].start.isZero()) {
-          throw new Error("OHNO");
+          throw new Error(`table id must not be 0`);
         }
         await loadNodeTree(
           array[x].offset,
@@ -775,7 +775,7 @@ export async function openLowPst(api: ReadFileApi): Promise<PLStore> {
         }
       }
       else {
-        throw new Error(`Invalid level ${level}`);
+        throw new Error(`invalid level ${level}`);
       }
     }
   }
@@ -954,7 +954,7 @@ export async function openLowPst(api: ReadFileApi): Promise<PLStore> {
   function getOneNodeByOrError(nodeId: number): PLNode {
     const node = getOneNodeBy(nodeId);
     if (node === undefined) {
-      throw new Error(`node ${nodeId} must be valid`);
+      throw new Error(`node ${nodeId} must exist and must be valid`);
     }
     return node;
   }

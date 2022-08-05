@@ -9,7 +9,7 @@ export class SingleAsyncProvider<T> {
       this._ready = true;
     }
     if (this._value === undefined) {
-      throw new Error("value is undefined");
+      throw new Error("provider must provide non-undefined value");
     }
     return this._value;
   }

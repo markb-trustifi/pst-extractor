@@ -13,7 +13,7 @@ export class KeyedDelay<T> {
     if (this._map.has(key)) {
       const value = this._map.get(key);
       if (value === undefined) {
-        throw new Error("value is undefined");
+        throw new Error("provider must provide a non-undefined value");
       }
       return value;
     }

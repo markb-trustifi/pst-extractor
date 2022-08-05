@@ -157,7 +157,7 @@ describe('RecurrencePattern tests', () => {
     expect(recurrencePattern.patternType).toEqual(PatternType.Week)
 
     // occurs daily for 3 days
-    appt = (await folder.getEmail(1))
+    appt = (await folder.getEmail(1)) as PSTAppointment
     expect(appt.messageClass).toEqual('IPM.Appointment')
     expect(appt.subject).toEqual('repeats for 3 days')
     expect(appt.startTime).toEqual(new Date('2021-08-10T19:00:00.000Z'))

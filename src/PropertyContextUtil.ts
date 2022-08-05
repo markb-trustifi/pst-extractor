@@ -17,7 +17,7 @@ export async function getPropertyContext(
   resolver: PropertyValueResolver
 ): Promise<PropertyContext> {
   if (heap.bClientSig !== bTypePC) {
-    throw new Error("must be bTypePC");
+    throw new Error("bClientSig must be bTypePC");
   }
   const reader = heap.getReader();
 

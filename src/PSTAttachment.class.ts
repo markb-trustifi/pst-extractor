@@ -87,9 +87,8 @@ export class PSTAttachment extends PSTObject {
         if (false) { }
         else if (attachDataBinary instanceof ArrayBuffer) {
           // PT_BINARY
-          attachDataBinary;
 
-          throw new Error("how to operate attachDataBinary?");
+          throw new Error("Currently getEmbeddedPSTMessage and ATTACHMENT_METHOD_EMBEDDED need attachDataBinary to be PT_OBJECT");
         }
         else if (attachDataBinary instanceof PropertyTypeObject) {
           const { subNodeId } = attachDataBinary;
