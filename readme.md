@@ -10,8 +10,13 @@ Links: [typedoc](https://hiraokahypertools.github.io/pst-extractor/typedoc/)
 
 ## Authors
 
-- kenjiuno
+Original repository's author:
+
 - Ed Pfromer (epfromer@gmail.com)
+
+Forked repository's author:
+
+- kenjiuno
 
 ## License
 
