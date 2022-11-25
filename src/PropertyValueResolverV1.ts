@@ -40,6 +40,8 @@ const PT_MV_BINARY = 0x1102;
 const PT_MV_LONG = 0x1003;
 const PT_MV_CLSID = 0x1048;
 
+const PT_MVPV_BINARY = 0x2102;
+
 typeConverters[PT_SHORT] = async (arg) => {
   return arg.view.getInt16(0, true);
 };
@@ -211,6 +213,27 @@ typeConverters[PT_MV_STRING8] = async (arg) => {
         list.push(
           await arg.convertAnsiString(elementBytes)
         )
+      }
+    }
+  }
+  return list;
+};
+typeConverters[PT_MVPV_BINARY] = async (arg) => {
+  // not sure
+  const heap = arg.view.getUint32(0, true);
+  const list = [] as any[];
+  if (heap !== 0) {
+    const bytes = await arg.resolveHeap(heap);
+    if (bytes !== undefined) {
+      const view = new DataView(bytes);
+      const count = view.getUint32(0, true);
+      for (let x = 0; x < count - 1; x++) {
+        const from = view.getUint32(4 + 4 * (x), true);
+        const to = view.getUint32(4 + 4 * (x + 1), true);
+
+        const elementBytes = bytes.slice(from, to);
+
+        list.push(elementBytes)
       }
     }
   }
