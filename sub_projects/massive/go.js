@@ -7,7 +7,7 @@ const targets = fs.readFileSync('targets.txt', { encoding: 'utf-8' })
   .split('\n')
   .map(expandEnvironmentVariablesForWindows)
   .map(it => it.replace(/\\/g, "/"))
-  .filter(it => it.length !== 0);
+  .filter(it => it.length !== 0 && !it.startsWith(";"));
 
 (async () => {
   for (let target of targets) {
@@ -35,7 +35,7 @@ async function verify(fullPath) {
         }
       }
       catch (ex) {
-        console.error(`w: ${prefix}/Email#${idx}`);
+        console.error(`w: ${prefix}/Email#${idx} // ${ex}`);
       }
     }
 
@@ -46,7 +46,7 @@ async function verify(fullPath) {
         await walk(subFolder, `${prefix}/${subFolder.displayName}`);
       }
       catch (ex) {
-        console.error(`w: ${prefix}/Folder#${idx}`);
+        console.error(`w: ${prefix}/Folder#${idx} // ${ex}`);
       }
     }
   }
