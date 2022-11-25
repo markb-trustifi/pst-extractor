@@ -32,6 +32,10 @@ describe('tree traversal tests', () => {
     it.each(sourceFiles)("scan %s", async (sourceFile: string) => {
       await scan(sourceFile);
     }, 1000 * 60 * 60);
+
+    it.each(sourceFiles)("faster scan %s", async (sourceFile: string) => {
+      await fasterScan(sourceFile);
+    }, 1000 * 60 * 60);
   }
   else {
     it("no files given", function () { });
@@ -57,6 +61,32 @@ async function scanTree(folder: PSTFolder, depth: number): Promise<void> {
     await scanTree(subFolder, depth + 1);
   }
   for (let item of (await folder.getEmails())) {
+    //console.log(prefix(`- ${item.displayName}`));
+    (await item.getAttachments());
+    (await item.getRecipients());
+  }
+}
+
+async function fasterScan(sourceFile: string): Promise<void> {
+  const pstFile = await openPstFile(sourceFile);
+  try {
+    await fasterScanTree((await pstFile.getRootFolder()), 0);
+  }
+  finally {
+    pstFile.close();
+  }
+}
+
+async function fasterScanTree(folder: PSTFolder, depth: number): Promise<void> {
+  function prefix(text: string): string {
+    return "  ".repeat(depth) + text;
+  }
+  for (let subFolder of (await folder.getSubFolders())) {
+    //console.log(prefix(`@ ${subFolder.displayName}`));
+    await scanTree(subFolder, depth + 1);
+  }
+  for (let faster of (await folder.getFasterEmailList())) {
+    const item = await faster.getMessage();
     //console.log(prefix(`- ${item.displayName}`));
     (await item.getAttachments());
     (await item.getRecipients());

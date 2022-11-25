@@ -12,6 +12,9 @@ import { PLSubNode } from './PLSubNode'
 import { CollectionAsyncProvider } from './CollectionAsyncProvider'
 import { SingleAsyncProvider } from './SingleAsyncProvider'
 import { RootProvider } from './RootProvider'
+import { FasterEmail } from './FasterEmail'
+import { getPropertyContext } from './PropertyContextUtil'
+import { PropertyValueResolver } from './PropertyValueResolver'
 
 /**
  * Represents a folder in the PST File.  Allows you to access child folders or items.
@@ -235,6 +238,63 @@ export class PSTFolder extends PSTObject {
 
   public async getEmails(): Promise<PSTMessage[]> {
     return (await (await this.getEmailsProvider()).all());
+  }
+
+  public async getFasterEmailList(): Promise<FasterEmail[]> {
+    const list: FasterEmail[] = [];
+
+    if (this.getNodeType() === PSTUtil.NID_TYPE_SEARCH_FOLDER) {
+      // ignore
+    }
+    else {
+      const rootProvider = this._rootProvider;
+      const nameKeys: number[] = [
+        OutlookProperties.PR_DISPLAY_NAME,
+        OutlookProperties.PR_SUBJECT,
+      ];
+      const innerResolver: PropertyValueResolver = {
+        async resolveValueOf(key, type, value, heap) {
+          if (key in nameKeys || key === OutlookProperties.PR_MESSAGE_CLASS) {
+            return rootProvider.resolver.resolveValueOf(key, type, value, heap);
+          }
+          return undefined;
+        },
+      };
+
+      for (let node of this._node.getChildren()) {
+        if (this.getNodeType(node.nodeId) === PSTUtil.NID_TYPE_NORMAL_MESSAGE) {
+          const subNode = node.getSubNode();
+
+          const heap = await getHeapFrom(subNode);
+          const pc = await getPropertyContext(
+            heap,
+            innerResolver
+          );
+
+          const propList = await pc.list();
+
+          function getValueOfAny(keys: number[]): string {
+            return `${propList.filter(it => it.key in keys)[0]?.value}`;
+          }
+
+          list.push(
+            {
+              displayName: getValueOfAny(nameKeys),
+              messageClass: getValueOfAny([OutlookProperties.PR_MESSAGE_CLASS]),
+              async getMessage() {
+                return await rootProvider.getItemOf(
+                  node,
+                  node.getSubNode(),
+                  undefined
+                );
+              }
+            }
+          );
+        }
+      }
+    }
+
+    return list;
   }
 
   /**
