@@ -7,7 +7,7 @@ import { PLNode } from "./PLNode";
 import { PLStore } from "./PLStore";
 import { PLSubNode } from "./PLSubNode";
 import { PSTUtil } from "./PSTUtil.class";
-import * as zlib from 'zlib'
+import { inflate } from "pako";
 
 export type ReadFile = (
   buffer: ArrayBuffer,
@@ -104,6 +104,10 @@ export function readLong(view: DataView, offset: number): Long {
 
 type UnzipHook = (data: ArrayBuffer) => Promise<ArrayBuffer>;
 
+/**
+ * 
+ * @internal
+ */
 async function passThru1(data: ArrayBuffer): Promise<ArrayBuffer> {
   return data;
 }
@@ -116,25 +120,8 @@ async function willUnzip1(data: ArrayBuffer): Promise<ArrayBuffer> {
   if (data.byteLength >= 4) {
     const view = new DataView(data);
     if (view.getUint16(0, true) === 0x9c78) {
-      const arrayBuffer = await new Promise<ArrayBuffer>(
-        (resolve, reject) => zlib.unzip(
-          Buffer.from(data),
-          (error, result) => {
-            if (error) {
-              reject(error);
-            }
-            else {
-              resolve(
-                result.buffer.slice(
-                  result.byteOffset,
-                  result.byteLength
-                )
-              );
-            }
-          }
-        )
-      );
-      return arrayBuffer;
+      const inflated = inflate(data);
+      return inflated.buffer;
     }
   }
 
