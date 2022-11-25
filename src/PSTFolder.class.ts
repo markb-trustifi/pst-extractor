@@ -16,6 +16,10 @@ import { FasterEmail } from './FasterEmail'
 import { getPropertyContext } from './PropertyContextUtil'
 import { PropertyValueResolver } from './PropertyValueResolver'
 
+export interface GetFasterEmailListOptions {
+  progress?: (current: number, count: number) => void;
+}
+
 /**
  * Represents a folder in the PST File.  Allows you to access child folders or items.
  * Items are accessed through a sort of cursor arrangement.  This allows for
@@ -240,7 +244,7 @@ export class PSTFolder extends PSTObject {
     return (await (await this.getEmailsProvider()).all());
   }
 
-  public async getFasterEmailList(): Promise<FasterEmail[]> {
+  public async getFasterEmailList(options?: GetFasterEmailListOptions): Promise<FasterEmail[]> {
     const list: FasterEmail[] = [];
 
     if (this.getNodeType() === PSTUtil.NID_TYPE_SEARCH_FOLDER) {
@@ -248,20 +252,27 @@ export class PSTFolder extends PSTObject {
     }
     else {
       const rootProvider = this._rootProvider;
-      const nameKeys: number[] = [
-        OutlookProperties.PR_DISPLAY_NAME,
-        OutlookProperties.PR_SUBJECT,
-      ];
       const innerResolver: PropertyValueResolver = {
         async resolveValueOf(key, type, value, heap) {
-          if (key in nameKeys || key === OutlookProperties.PR_MESSAGE_CLASS) {
+          if (false
+            || key === OutlookProperties.PR_DISPLAY_NAME
+            || key === OutlookProperties.PR_SUBJECT
+            || key === OutlookProperties.PR_MESSAGE_CLASS
+          ) {
             return rootProvider.resolver.resolveValueOf(key, type, value, heap);
           }
           return undefined;
         },
       };
 
-      for (let node of this._node.getChildren()) {
+      const nodes = this._node.getChildren();
+      const progress = options?.progress || ((_, __) => { });
+      const count = nodes.length;
+      let index = -1;
+
+      for (let node of nodes) {
+        progress(++index, count);
+
         if (this.getNodeType(node.nodeId) === PSTUtil.NID_TYPE_NORMAL_MESSAGE) {
           const subNode = node.getSubNode();
 
@@ -274,12 +285,12 @@ export class PSTFolder extends PSTObject {
           const propList = await pc.list();
 
           function getValueOfAny(keys: number[]): string {
-            return `${propList.filter(it => it.key in keys)[0]?.value}`;
+            return `${propList.filter(it => keys.indexOf(it.key) !== -1)[0]?.value}`;
           }
 
           list.push(
             {
-              displayName: getValueOfAny(nameKeys),
+              displayName: getValueOfAny([OutlookProperties.PR_SUBJECT, OutlookProperties.PR_DISPLAY_NAME]),
               messageClass: getValueOfAny([OutlookProperties.PR_MESSAGE_CLASS]),
               async getMessage() {
                 return await rootProvider.getItemOf(
