@@ -63,50 +63,66 @@ export class PSTFolder extends PSTObject {
           // trying to read emailsTable PSTTable7C
           const contentsTableNode = this._node.getSiblingNode(PSTUtil.NID_TYPE_CONTENTS_TABLE);
 
+          let doFallback = true;
+
           if (contentsTableNode !== undefined) {
-            const contentsTableNodeReader = contentsTableNode.getSubNode();
-            const heap = await getHeapFrom(
-              contentsTableNodeReader
-            );
+            try {
+              const contentsTableNodeReader = contentsTableNode.getSubNode();
+              const heap = await getHeapFrom(
+                contentsTableNodeReader
+              );
 
-            const tc = await getTableContext(
-              heap,
-              this._rootProvider.resolver
-            );
+              const tc = await getTableContext(
+                heap,
+                this._rootProvider.resolver
+              );
 
-            const rows = await tc.rows();
+              const rows = await tc.rows();
 
-            const orderOfNodes: {
-              nodeId: number,
-              propertyFinder: PropertyFinder,
-            }[] = [];
+              const orderOfNodes: {
+                nodeId: number,
+                propertyFinder: PropertyFinder,
+              }[] = [];
 
-            for (let row of rows) {
-              const props = createPropertyFinder(await row.list());
-              const prop = props.findByKey(0x67f2);
-              if (prop !== undefined && typeof prop.value === 'number') {
-                orderOfNodes.push({ nodeId: prop.value, propertyFinder: props });
+              for (let row of rows) {
+                const props = createPropertyFinder(await row.list());
+                const prop = props.findByKey(0x67f2);
+                if (prop !== undefined && typeof prop.value === 'number') {
+                  orderOfNodes.push({ nodeId: prop.value, propertyFinder: props });
+                }
               }
+
+              const childNodeIdMap = new Map(
+                this._node.getChildren()
+                  .map(node => [node.nodeId, node])
+              );
+
+              for (let { nodeId, propertyFinder } of orderOfNodes) {
+                const found = childNodeIdMap.get(nodeId);
+                if (found !== undefined) {
+                  targets.push({
+                    node: found,
+                    propertyFinder: propertyFinder,
+                  });
+                }
+              }
+              doFallback = false;
             }
+            catch (ex) {
+              // There are some unknown cases that TC of email list is broken.
+              // Especially on ost file.
+              // Thus fallback is still required.
 
-            const childNodeIdMap = new Map(
-              this._node.getChildren()
-                .map(node => [node.nodeId, node])
-            );
+              // .../Folder#0 // Error: getTableContext.list(rowIndex=0) resolving property key=0x001a type=0x001f of subNode of nodeId=32974,nidType=14 failure --> Error: heap=0x11604460 of subNode of nodeId=32974,nidType=14 not found
 
-            for (let { nodeId, propertyFinder } of orderOfNodes) {
-              const found = childNodeIdMap.get(nodeId);
-              if (found !== undefined) {
-                targets.push({
-                  node: found,
-                  propertyFinder: propertyFinder,
-                });
-              }
+              // In this case, Outlook 2003 will try to recover the broken TC of that folder with a kind of fallback mode.
             }
           }
-          else {
+
+          if (doFallback) {
             //console.log("fallback");
             // fallback to children as listed in the descriptor b-tree
+            targets.length = 0;
             for (let node of this._node.getChildren()) {
               if (this.getNodeType(node.nodeId) === PSTUtil.NID_TYPE_NORMAL_MESSAGE) {
                 targets.push({ node, propertyFinder: undefined });
