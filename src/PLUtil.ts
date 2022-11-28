@@ -77,6 +77,7 @@ interface StoreTrait {
   INDEX_POINTER: number;
   BlockSize: number;
   unzipHook: UnzipHook;
+  is4K: boolean;
 }
 
 /**
@@ -426,6 +427,7 @@ const ver0x0e: StoreTrait = {
   readXBlock: ptr32.readXBlock,
   readXXBlock: ptr32.readXXBlock,
   unzipHook: passThru1,
+  is4K: false,
 };
 
 const ver0x17: StoreTrait = {
@@ -450,6 +452,7 @@ const ver0x17: StoreTrait = {
   readXBlock: ptr64.readXBlock,
   readXXBlock: ptr64.readXXBlock,
   unzipHook: passThru1,
+  is4K: false,
 };
 
 const ver0x24: StoreTrait = {
@@ -474,6 +477,7 @@ const ver0x24: StoreTrait = {
   readXBlock: ptr64.readXBlock,
   readXXBlock: ptr64.readXXBlock,
   unzipHook: willUnzip1,
+  is4K: true,
 };
 
 interface SIBlockEntry {
@@ -896,6 +900,7 @@ export async function openLowPst(api: ReadFileApi): Promise<PLStore> {
 
       return {
         nodeId: childNodeId,
+        is4K: trait.is4K,
         getChildBy: async (childNodeId) => await getChildOf(
           subNode.subBlockId,
           childNodeId,

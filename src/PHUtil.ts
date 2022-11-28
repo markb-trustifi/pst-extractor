@@ -17,7 +17,7 @@ export async function getHeapFrom(node: PLSubNode): Promise<PHNodeHeap> {
       ({ bClientSig, userRoot: userRootHnid } = load_root_header(data_chunks, data_array[x]));
     }
     else {
-      load_page_header(data_chunks, data_array[x], x);
+      load_page_header(data_chunks, data_array[x], x, node.is4K);
     }
   }
 
@@ -96,7 +96,8 @@ function load_root_header(
 function load_page_header(
   data_chunks: Map<number, ArrayBuffer>,
   data: ArrayBuffer,
-  page_index: number
+  page_index: number,
+  is4K: boolean
 ): void {
   const view = new DataView(data);
   const page_map = view.getUint16(0, true);
@@ -106,6 +107,6 @@ function load_page_header(
     const from = view.getUint16(page_map + 4 + 2 * (x), true);
     const to = view.getUint16(page_map + 4 + 2 * (x + 1), true);
 
-    data_chunks.set(0x20 * (1 + x) + 65536 * page_index, data.slice(from, to));
+    data_chunks.set(0x20 * (1 + x) + (is4K ? 524288 : 65536) * page_index, data.slice(from, to));
   }
 }
