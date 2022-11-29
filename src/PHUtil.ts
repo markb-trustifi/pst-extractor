@@ -107,6 +107,6 @@ function load_page_header(
     const from = view.getUint16(page_map + 4 + 2 * (x), true);
     const to = view.getUint16(page_map + 4 + 2 * (x + 1), true);
 
-    data_chunks.set(0x20 * (1 + x) + (is4K ? 524288 : 65536) * page_index, data.slice(from, to));
+    data_chunks.set(0x20 * (1 + x) + (is4K ? 65536 * 8 : 65536) * page_index, data.slice(from, to));
   }
 }

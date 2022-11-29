@@ -116,6 +116,8 @@ export class PSTFolder extends PSTObject {
               doFallback = false;
             }
             catch (ex) {
+              // console.error(ex);
+
               // There are some unknown cases that TC of email list is broken.
               // Especially on ost file.
               // Thus fallback is still required.

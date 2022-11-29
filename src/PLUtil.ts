@@ -921,6 +921,7 @@ export async function openLowPst(api: ReadFileApi): Promise<PLStore> {
 
       return {
         nodeId: nodeId,
+        is4K: trait.is4K,
         getChildBy: async (childNodeId) => getChildOf(
           node.subBlockId,
           childNodeId,
