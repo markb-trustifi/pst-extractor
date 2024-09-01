@@ -17,7 +17,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/HiraokaHyperTools/pst-extractor.git"
+    "url": "https://github.com/markb-trustifi/pst-extractor.git"
   },
   "author": "kenjiuno",
   "contributors": [
@@ -103,8 +103,5 @@
       "text",
       "cobertura"
     ]
-  },
-  "files": [
-    "dist"
-  ]
+  }
 }
