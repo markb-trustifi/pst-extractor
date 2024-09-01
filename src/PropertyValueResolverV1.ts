@@ -33,11 +33,13 @@ const PT_SYSTIME = 0x40;
 const PT_CLSID = 0x48;
 const PT_SHORT = 0x2;
 const PT_FLOAT = 0x4;
-
+const PT_BINARY = 0x0102;
 const PT_MV_UNICODE = 0x101F;
 const PT_MV_STRING8 = 0x101E;
 const PT_MV_BINARY = 0x1102;
+const PT_MV_SHORT = 0x1002;
 const PT_MV_LONG = 0x1003;
+const PT_MV_LONGLONG = 0x1014;
 const PT_MV_CLSID = 0x1048;
 
 const PT_MVPV_BINARY = 0x2102;
@@ -115,7 +117,7 @@ typeConverters[PT_CLSID] = async (arg) => {
   const bytes = await arg.resolveHeap(heap);
   return bytes;
 };
-typeConverters[0x0102] = async (arg) => {
+typeConverters[PT_BINARY] = async (arg) => {
   const heap = arg.view.getUint32(0, true);
   const bytes = await arg.resolveHeap(heap);
   return bytes;
@@ -157,6 +159,21 @@ typeConverters[PT_MV_BINARY] = async (arg) => {
         const elementBytes = bytes.slice(from, to);
 
         list.push(elementBytes)
+      }
+    }
+  }
+  return list;
+};
+typeConverters[PT_MV_SHORT] = async (arg) => {
+  const heap = arg.view.getUint32(0, true);
+  const list = [] as any[];
+  if (heap !== 0) {
+    const bytes = await arg.resolveHeap(heap);
+    if (bytes !== undefined) {
+      const view = new DataView(bytes);
+      const count = bytes.byteLength / 2;
+      for (let x = 0; x < count; x++) {
+        list.push(view.getInt16(2 * x, true))
       }
     }
   }
