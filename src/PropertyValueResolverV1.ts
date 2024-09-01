@@ -194,6 +194,21 @@ typeConverters[PT_MV_LONG] = async (arg) => {
   }
   return list;
 };
+typeConverters[PT_MV_LONGLONG] = async (arg) => {
+  const heap = arg.view.getUint32(0, true);
+  const list = [] as any[];
+  if (heap !== 0) {
+    const bytes = await arg.resolveHeap(heap);
+    if (bytes !== undefined) {
+      const view = new DataView(bytes);
+      const count = bytes.byteLength / 8;
+      for (let x = 0; x < count; x++) {
+        list.push(readLong(view, x * 8));
+      }
+    }
+  }
+  return list;
+};
 typeConverters[PT_MV_CLSID] = async (arg) => {
   const heap = arg.view.getUint32(0, true);
   const list = [] as any[];

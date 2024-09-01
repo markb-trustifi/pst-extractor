@@ -176,6 +176,21 @@ typeConverters[PT_MV_LONG] = (arg) => __awaiter(void 0, void 0, void 0, function
     }
     return list;
 });
+typeConverters[PT_MV_LONGLONG] = (arg) => __awaiter(void 0, void 0, void 0, function* () {
+    const heap = arg.view.getUint32(0, true);
+    const list = [];
+    if (heap !== 0) {
+        const bytes = yield arg.resolveHeap(heap);
+        if (bytes !== undefined) {
+            const view = new DataView(bytes);
+            const count = bytes.byteLength / 8;
+            for (let x = 0; x < count; x++) {
+                list.push((0, PLUtil_1.readLong)(view, x * 8));
+            }
+        }
+    }
+    return list;
+});
 typeConverters[PT_MV_CLSID] = (arg) => __awaiter(void 0, void 0, void 0, function* () {
     const heap = arg.view.getUint32(0, true);
     const list = [];
