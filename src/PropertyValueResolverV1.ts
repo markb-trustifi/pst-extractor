@@ -34,6 +34,7 @@ const PT_CLSID = 0x48;
 const PT_SHORT = 0x2;
 const PT_FLOAT = 0x4;
 const PT_BINARY = 0x0102;
+const PT_SVREID = 0x00FB;
 const PT_MV_UNICODE = 0x101F;
 const PT_MV_STRING8 = 0x101E;
 const PT_MV_BINARY = 0x1102;
@@ -118,6 +119,11 @@ typeConverters[PT_CLSID] = async (arg) => {
   return bytes;
 };
 typeConverters[PT_BINARY] = async (arg) => {
+  const heap = arg.view.getUint32(0, true);
+  const bytes = await arg.resolveHeap(heap);
+  return bytes;
+};
+typeConverters[PT_SVREID] = async (arg) => {
   const heap = arg.view.getUint32(0, true);
   const bytes = await arg.resolveHeap(heap);
   return bytes;

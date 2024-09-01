@@ -62,7 +62,7 @@ export async function getPropertyContext(
           );
         }
         catch (ex) {
-          throw new Error(`getPropertyContext.list() resolving property`
+          console.error(`getPropertyContext.list() resolving property`
             + ` key=0x${it.key.toString(16).padStart(4, '0')}`
             + ` type=0x${it.type.toString(16).padStart(4, '0')}`
             + ` of ${heap} failure`
