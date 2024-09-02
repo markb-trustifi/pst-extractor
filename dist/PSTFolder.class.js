@@ -210,10 +210,8 @@ class PSTFolder extends PSTObject_class_1.PSTObject {
                 const innerResolver = {
                     resolveValueOf(key, type, value, heap) {
                         return __awaiter(this, void 0, void 0, function* () {
-                            if (false
-                                || key === OutlookProperties_1.OutlookProperties.PR_DISPLAY_NAME
-                                || key === OutlookProperties_1.OutlookProperties.PR_SUBJECT
-                                || key === OutlookProperties_1.OutlookProperties.PR_MESSAGE_CLASS) {
+                            if (key === OutlookProperties_1.OutlookProperties.PR_DISPLAY_NAME || key === OutlookProperties_1.OutlookProperties.PR_SUBJECT ||
+                                key === OutlookProperties_1.OutlookProperties.PR_MESSAGE_CLASS || key === OutlookProperties_1.OutlookProperties.PR_INTERNET_MESSAGE_ID) {
                                 return rootProvider.resolver.resolveValueOf(key, type, value, heap);
                             }
                             return undefined;
@@ -238,6 +236,7 @@ class PSTFolder extends PSTObject_class_1.PSTObject {
                         list.push({
                             displayName: getValueOfAny([OutlookProperties_1.OutlookProperties.PR_SUBJECT, OutlookProperties_1.OutlookProperties.PR_DISPLAY_NAME]),
                             messageClass: getValueOfAny([OutlookProperties_1.OutlookProperties.PR_MESSAGE_CLASS]),
+                            messageId: getValueOfAny([OutlookProperties_1.OutlookProperties.PR_INTERNET_MESSAGE_ID]),
                             getMessage() {
                                 return __awaiter(this, void 0, void 0, function* () {
                                     return yield rootProvider.getItemOf(node, node.getSubNode(), undefined);
