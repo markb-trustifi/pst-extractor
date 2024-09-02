@@ -256,10 +256,8 @@ export class PSTFolder extends PSTObject {
       const rootProvider = this._rootProvider;
       const innerResolver: PropertyValueResolver = {
         async resolveValueOf(key, type, value, heap) {
-          if (false
-            || key === OutlookProperties.PR_DISPLAY_NAME
-            || key === OutlookProperties.PR_SUBJECT
-            || key === OutlookProperties.PR_MESSAGE_CLASS
+          if (key === OutlookProperties.PR_DISPLAY_NAME || key === OutlookProperties.PR_SUBJECT ||
+              key === OutlookProperties.PR_MESSAGE_CLASS || key === OutlookProperties.PR_INTERNET_MESSAGE_ID
           ) {
             return rootProvider.resolver.resolveValueOf(key, type, value, heap);
           }
@@ -290,10 +288,10 @@ export class PSTFolder extends PSTObject {
             return `${propList.filter(it => keys.indexOf(it.key) !== -1)[0]?.value}`;
           }
 
-          list.push(
-            {
+          list.push({
               displayName: getValueOfAny([OutlookProperties.PR_SUBJECT, OutlookProperties.PR_DISPLAY_NAME]),
               messageClass: getValueOfAny([OutlookProperties.PR_MESSAGE_CLASS]),
+              messageId: getValueOfAny([OutlookProperties.PR_INTERNET_MESSAGE_ID]),
               async getMessage() {
                 return await rootProvider.getItemOf(
                   node,
