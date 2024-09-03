@@ -281,6 +281,26 @@ export class PSTUtil {
     0xec,
   ]
 
+  /*public static responseStatus: Map<number, string> = new Map([
+    ResponseStatus.NONE: None,
+    ResponseStatus.ORGANIZED: 'Meeting organizer',
+    ResponseStatus.TENTATIVE: 'Tentatively accepted',
+    ResponseStatus.ACCEPTED: 'Accepted',
+    ResponseStatus.DECLINED: 'Declined',
+    ResponseStatus.NOT_RESPONDED: 'Not yet responded',
+  ])*/
+
+  /*public static patternType: Map<number, string> = new Map([
+    RecurPatternType.DAY: 'Daily',
+    RecurPatternType.WEEK: 'Weekly',
+    RecurPatternType.MONTH: 'Monthly',
+    RecurPatternType.MONTH_NTH: 'Monthly',
+    RecurPatternType.MONTH_END: 'Monthly',
+    RecurPatternType.HJ_MONTH: 'Monthly',
+    RecurPatternType.HJ_MONTH_NTH: 'Monthly',
+    RecurPatternType.HJ_MONTH_END: 'Monthly',
+  ])*/
+
   public static codePages: Map<number, string> = new Map([
     [28596, 'iso-8859-6'],
     [1256, 'windows-1256'],
