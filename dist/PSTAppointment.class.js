@@ -183,6 +183,9 @@ class PSTAppointment extends PSTMessage_class_1.PSTMessage {
     get timezone() {
         return this.getBinaryItem(this._rootProvider.getNameToIdMapItem(OutlookProperties_1.OutlookProperties.PidLidTimeZoneStruct, OutlookProperties_1.OutlookProperties.PSETID_Appointment));
     }
+    get timeZoneDescription() {
+        return this.getStringItem(this._rootProvider.getNameToIdMapItem(OutlookProperties_1.OutlookProperties.PidLidTimeZoneDescription, OutlookProperties_1.OutlookProperties.PSETID_Appointment));
+    }
     /**
      * Specifies a list of all the attendees except for the organizer, including resources and unsendable attendees.
      * https://msdn.microsoft.com/en-us/library/office/cc815418.aspx
@@ -303,6 +306,9 @@ class PSTAppointment extends PSTMessage_class_1.PSTMessage {
     get appointmentCounterProposal() {
         return this.getBooleanItem(this._rootProvider.getNameToIdMapItem(OutlookProperties_1.OutlookProperties.PidLidAppointmentCounterProposal, OutlookProperties_1.OutlookProperties.PSETID_Appointment));
     }
+    get appointmentUnsendableRecipients() {
+        return this.getBooleanItem(this._rootProvider.getNameToIdMapItem(OutlookProperties_1.OutlookProperties.PidLidAppointmentUnsendableRecipients, OutlookProperties_1.OutlookProperties.PSETID_Appointment));
+    }
     /**
      * Indicates whether the user did not include any text in the body of the Meeting Response object.
      * https://msdn.microsoft.com/en-us/library/ee159822(v=exchg.80).aspx
@@ -322,6 +328,18 @@ class PSTAppointment extends PSTMessage_class_1.PSTMessage {
      */
     get requiredAttendees() {
         return this.getStringItem(this._rootProvider.getNameToIdMapItem(OutlookProperties_1.OutlookProperties.PidLidRequiredAttendees, OutlookProperties_1.OutlookProperties.PSETID_Meeting));
+    }
+    get optionalAttendees() {
+        return this.getStringItem(this._rootProvider.getNameToIdMapItem(OutlookProperties_1.OutlookProperties.PidLidOptionalAttendees, OutlookProperties_1.OutlookProperties.PSETID_Meeting));
+    }
+    get resourceAttendees() {
+        return this.getStringItem(this._rootProvider.getNameToIdMapItem(OutlookProperties_1.OutlookProperties.PidLidResourceAttendees, OutlookProperties_1.OutlookProperties.PSETID_Meeting));
+    }
+    get commonStart() {
+        return this.getDateItem(this._rootProvider.getNameToIdMapItem(OutlookProperties_1.OutlookProperties.PidLidCommonStart, OutlookProperties_1.OutlookProperties.PSETID_Common));
+    }
+    get commonEnd() {
+        return this.getDateItem(this._rootProvider.getNameToIdMapItem(OutlookProperties_1.OutlookProperties.PidLidCommonEnd, OutlookProperties_1.OutlookProperties.PSETID_Common));
     }
     /**
      * Contains the Windows Locale ID of the end-user who created this message.
@@ -360,6 +378,7 @@ class PSTAppointment extends PSTMessage_class_1.PSTMessage {
             recurrencePattern: this.recurrencePattern,
             recurrenceStructure: this.recurrenceStructure,
             timezone: this.timezone,
+            timeZoneDescription: this.timeZoneDescription,
             allAttendees: this.allAttendees,
             toAttendees: this.toAttendees,
             ccAttendees: this.ccAttendees,
@@ -371,8 +390,11 @@ class PSTAppointment extends PSTMessage_class_1.PSTMessage {
             netMeetingDocumentPathName: this.netMeetingDocumentPathName,
             attendeeCriticalChange: this.attendeeCriticalChange,
             appointmentCounterProposal: this.appointmentCounterProposal,
+            appointmentUnsendableRecipients: this.appointmentUnsendableRecipients,
             isSilent: this.isSilent,
             requiredAttendees: this.requiredAttendees,
+            optionalAttendees: this.optionalAttendees,
+            resourceAttendees: this.resourceAttendees,
             localeId: this.localeId,
         }, this);
         return clone;

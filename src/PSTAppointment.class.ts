@@ -291,6 +291,15 @@ export class PSTAppointment extends PSTMessage {
     )
   }
 
+  public get timeZoneDescription(): string {
+    return this.getStringItem(
+      this._rootProvider.getNameToIdMapItem(
+        OutlookProperties.PidLidTimeZoneDescription,
+        OutlookProperties.PSETID_Appointment
+      )
+    )
+  }
+
   /**
    * Specifies a list of all the attendees except for the organizer, including resources and unsendable attendees.
    * https://msdn.microsoft.com/en-us/library/office/cc815418.aspx
@@ -483,6 +492,15 @@ export class PSTAppointment extends PSTMessage {
     )
   }
 
+  public get appointmentUnsendableRecipients(): boolean {
+    return this.getBooleanItem(
+      this._rootProvider.getNameToIdMapItem(
+        OutlookProperties.PidLidAppointmentUnsendableRecipients,
+        OutlookProperties.PSETID_Appointment
+      )
+    )
+  }
+
   /**
    * Indicates whether the user did not include any text in the body of the Meeting Response object.
    * https://msdn.microsoft.com/en-us/library/ee159822(v=exchg.80).aspx
@@ -511,6 +529,42 @@ export class PSTAppointment extends PSTMessage {
       this._rootProvider.getNameToIdMapItem(
         OutlookProperties.PidLidRequiredAttendees,
         OutlookProperties.PSETID_Meeting
+      )
+    )
+  }
+
+  public get optionalAttendees(): string {
+    return this.getStringItem(
+      this._rootProvider.getNameToIdMapItem(
+        OutlookProperties.PidLidOptionalAttendees,
+        OutlookProperties.PSETID_Meeting
+      )
+    )
+  }
+
+  public get resourceAttendees(): string {
+    return this.getStringItem(
+      this._rootProvider.getNameToIdMapItem(
+        OutlookProperties.PidLidResourceAttendees,
+        OutlookProperties.PSETID_Meeting
+      )
+    )
+  }
+
+  public get commonStart(): Date | null {
+    return this.getDateItem(
+      this._rootProvider.getNameToIdMapItem(
+        OutlookProperties.PidLidCommonStart,
+        OutlookProperties.PSETID_Common
+      )
+    )
+  }
+
+  public get commonEnd(): Date | null {
+    return this.getDateItem(
+      this._rootProvider.getNameToIdMapItem(
+        OutlookProperties.PidLidCommonEnd,
+        OutlookProperties.PSETID_Common
       )
     )
   }
@@ -554,6 +608,7 @@ export class PSTAppointment extends PSTMessage {
         recurrencePattern: this.recurrencePattern,
         recurrenceStructure: this.recurrenceStructure,
         timezone: this.timezone,
+        timeZoneDescription: this.timeZoneDescription,
         allAttendees: this.allAttendees,
         toAttendees: this.toAttendees,
         ccAttendees: this.ccAttendees,
@@ -565,8 +620,11 @@ export class PSTAppointment extends PSTMessage {
         netMeetingDocumentPathName: this.netMeetingDocumentPathName,
         attendeeCriticalChange: this.attendeeCriticalChange,
         appointmentCounterProposal: this.appointmentCounterProposal,
+        appointmentUnsendableRecipients: this.appointmentUnsendableRecipients,
         isSilent: this.isSilent,
         requiredAttendees: this.requiredAttendees,
+        optionalAttendees: this.optionalAttendees,
+        resourceAttendees: this.resourceAttendees,
         localeId: this.localeId,
       },
       this

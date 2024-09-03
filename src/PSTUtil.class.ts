@@ -763,6 +763,7 @@ export class PSTUtil {
       case 'IPM.Schedule.Meeting.Resp.Tent':
       case 'IPM.Schedule.Meeting.Notification.Forward':
       case 'IPM.Schedule.Meeting.Resp.Neg':
+      case 'IPM.Schedule.Meeting.Request':
         // appointment
         // messageClass.startsWith('IPM.Schedule.Meeting')
         const apt = new PSTAppointment(
@@ -837,16 +838,6 @@ export class PSTUtil {
         );
         // Log.debug1(JSON.stringify(msg, null, 2));
         return oof;
-      case 'IPM.Schedule.Meeting.Request':
-        // Meeting request
-        const meetReq = new PSTMessage(
-          rootProvider,
-          node,
-          subNode,
-          propertyFinder
-        );
-        // Log.debug1(JSON.stringify(msg, null, 2));
-        return meetReq;
       case 'REPORT.IPM.Note.NDR':
         // Receipt of non-delivery
         const ndr = new PSTMessage(
@@ -881,16 +872,6 @@ export class PSTUtil {
         // Not-read notification
         // debugger;
         // console.log('PSTUtil::createAppropriatePSTMessageObject REPORT.IPM.Note.IPNNRN');
-        return new PSTMessage(
-          rootProvider,
-          node,
-          subNode,
-          propertyFinder
-        );
-      case 'IPM.Schedule.Meeting.Request':
-        // Meeting request
-        // debugger;
-        // console.log('PSTUtil::createAppropriatePSTMessageObject IPM.Schedule.Meeting.Request');
         return new PSTMessage(
           rootProvider,
           node,

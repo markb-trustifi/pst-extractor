@@ -207,6 +207,7 @@ class PSTUtil {
                 case 'IPM.Schedule.Meeting.Resp.Tent':
                 case 'IPM.Schedule.Meeting.Notification.Forward':
                 case 'IPM.Schedule.Meeting.Resp.Neg':
+                case 'IPM.Schedule.Meeting.Request':
                     // appointment
                     // messageClass.startsWith('IPM.Schedule.Meeting')
                     const apt = new PSTAppointment_class_1.PSTAppointment(rootProvider, node, subNode, propertyFinder);
@@ -246,11 +247,6 @@ class PSTUtil {
                     const oof = new PSTMessage_class_1.PSTMessage(rootProvider, node, subNode, propertyFinder);
                     // Log.debug1(JSON.stringify(msg, null, 2));
                     return oof;
-                case 'IPM.Schedule.Meeting.Request':
-                    // Meeting request
-                    const meetReq = new PSTMessage_class_1.PSTMessage(rootProvider, node, subNode, propertyFinder);
-                    // Log.debug1(JSON.stringify(msg, null, 2));
-                    return meetReq;
                 case 'REPORT.IPM.Note.NDR':
                     // Receipt of non-delivery
                     const ndr = new PSTMessage_class_1.PSTMessage(rootProvider, node, subNode, propertyFinder);
@@ -270,11 +266,6 @@ class PSTUtil {
                     // Not-read notification
                     // debugger;
                     // console.log('PSTUtil::createAppropriatePSTMessageObject REPORT.IPM.Note.IPNNRN');
-                    return new PSTMessage_class_1.PSTMessage(rootProvider, node, subNode, propertyFinder);
-                case 'IPM.Schedule.Meeting.Request':
-                    // Meeting request
-                    // debugger;
-                    // console.log('PSTUtil::createAppropriatePSTMessageObject IPM.Schedule.Meeting.Request');
                     return new PSTMessage_class_1.PSTMessage(rootProvider, node, subNode, propertyFinder);
                 case 'REPORT.IPM.Note.DR':
                     // Delivery receipt
