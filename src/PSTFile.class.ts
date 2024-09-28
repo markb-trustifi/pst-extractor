@@ -125,7 +125,8 @@ export class PSTFile {
       async (array) => iconv.decode(
         Buffer.from(array),
         (opts && opts.ansiEncoding) || "latin1"
-      )
+      ),
+      opts?.provideTypeConverterOf
     );
   }
 
