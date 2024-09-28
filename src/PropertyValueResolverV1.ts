@@ -36,16 +36,16 @@ export interface PrimitiveTypeConverterArg {
 }
 
 /**
- * Sample of PrimitiveTypeConverter:
+ * @example
  * 
  * ```ts
- * async function convertToShort(arg: PrimitiveTypeConverterArg): Promise<any> {
+ * async function convertShortProperty(arg: PrimitiveTypeConverterArg): Promise<any> {
  *  return arg.view.getInt16(0, true);
  * }
  * ```
  * 
  * ```ts
- * async function convertToAnsiString(arg: PrimitiveTypeConverterArg): Promise<any> {
+ * async function convertAnsiStringProperty(arg: PrimitiveTypeConverterArg): Promise<any> {
  *   const heap = arg.view.getUint32(0, true);
  *   const bytes = await arg.resolveHeap(heap);
  *   return (bytes !== undefined)
@@ -325,7 +325,8 @@ export class PropertyValueResolverV1 implements PropertyValueResolver {
 
   constructor(
     convertAnsiString: (array: ArrayBuffer) => Promise<string>,
-    provideTypeConverterOf?: (type: number) => PrimitiveTypeConverter | undefined
+    provideTypeConverterOf?: (type: number) => PrimitiveTypeConverter | undefined,
+    provideFallbackTypeConverterOf?: (type: number) => PrimitiveTypeConverter | undefined
   ) {
     this.convertAnsiString = convertAnsiString;
     this.provideTypeConverterOf = type => {
@@ -338,6 +339,12 @@ export class PropertyValueResolverV1 implements PropertyValueResolver {
       const converter = typeConverters[type];
       if (converter) {
         return converter;
+      }
+      if (provideFallbackTypeConverterOf) {
+        const converter = provideFallbackTypeConverterOf(type);
+        if (converter) {
+          return converter;
+        }
       }
       return undefined;
     };

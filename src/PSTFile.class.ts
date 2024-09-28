@@ -126,7 +126,8 @@ export class PSTFile {
         Buffer.from(array),
         (opts && opts.ansiEncoding) || "latin1"
       ),
-      opts?.provideTypeConverterOf
+      opts?.provideTypeConverterOf,
+      opts?.provideFallbackTypeConverterOf
     );
   }
 

@@ -36,9 +36,11 @@ export interface PSTOpts {
    * 
    * - `provideTypeConverterOf` (called if provided. return `undefined` to go next resolver)
    * - `typeConverters` (built-in type converters)
+   * - `provideFallbackTypeConverterOf` (called if provided. return `undefined` to go next resolver)
    * - `throw new Error(...);`
    * 
    * @example
+   * 
    * ```ts
    * const pst = openPstFile(
    *   'path/to/file.pst',
@@ -73,4 +75,28 @@ export interface PSTOpts {
    * return `undefined` to indicate to find another type converter.
    */
   provideTypeConverterOf?: (propertyType: number) => PrimitiveTypeConverter | undefined;
+
+  /**
+   * Provide your own optional type converter.
+   * 
+   * This provider is to provide a fallback type converter for unresolved types.
+   * 
+   * @example
+   * 
+   * ```ts
+   * const pstFile = await openPstFile(
+   *   'path/to/file.pst',
+   *   {
+   *     provideFallbackTypeConverterOf: (type) => {
+   *       return async (arg) => null;
+   *    }
+   *   }
+   * );
+   * ```
+   * 
+   * @param propertyType A numeric like `0x1002`
+   * @returns A valid PrimitiveTypeConverter; otherwise,
+   * return `undefined` to indicate to find another type converter.
+   */
+  provideFallbackTypeConverterOf?: (propertyType: number) => PrimitiveTypeConverter | undefined;
 }
