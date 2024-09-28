@@ -7,13 +7,53 @@ import { PropertyValueResolver } from "./PropertyValueResolver";
 import { PSTUtil } from "./PSTUtil.class";
 
 export interface PrimitiveTypeConverterArg {
+  /**
+   * Access to raw property value.
+   * 
+   * Do not modify the contents.
+   */
   view: DataView;
+
+  /**
+   * Access to heap reader.
+   */
   heap: PHNodeHeapReader;
+
+  /**
+   * Get bytes from either raw property value or heap.
+   */
   getBytes: (numBytes: number) => Promise<ArrayBuffer | undefined>;
+
+  /**
+   * Resolve heap by hnid.
+   */
   resolveHeap: (heap: number) => Promise<ArrayBuffer | undefined>;
+
+  /**
+   * Convert ansiString to unicode string.
+   */
   convertAnsiString: (array: ArrayBuffer) => Promise<string>;
 }
 
+/**
+ * Sample of PrimitiveTypeConverter:
+ * 
+ * ```ts
+ * async function convertToShort(arg: PrimitiveTypeConverterArg): Promise<any> {
+ *  return arg.view.getInt16(0, true);
+ * }
+ * ```
+ * 
+ * ```ts
+ * async function convertToAnsiString(arg: PrimitiveTypeConverterArg): Promise<any> {
+ *   const heap = arg.view.getUint32(0, true);
+ *   const bytes = await arg.resolveHeap(heap);
+ *   return (bytes !== undefined)
+ *     ? await arg.convertAnsiString(bytes)
+ *     : undefined;
+ * }
+ * ```
+ */
 export type PrimitiveTypeConverter = (
   arg: PrimitiveTypeConverterArg
 ) => Promise<any>;

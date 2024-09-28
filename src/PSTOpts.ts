@@ -38,8 +38,39 @@ export interface PSTOpts {
    * - `typeConverters` (built-in type converters)
    * - `throw new Error(...);`
    * 
-   * @param type A numeric like `0x1002`
-   * @returns A valid PrimitiveTypeConverter; otherwise, return `undefined` to apply fallback.
+   * @example
+   * ```ts
+   * const pst = openPstFile(
+   *   'path/to/file.pst',
+   *   {
+   *     provideTypeConverterOf: (propertyType) => {
+   *       if (propertyType === 0x1002) {
+   *         return async (arg) => {
+   *           const heap = arg.view.getUint32(0, true);
+   *           const list = [] as any[];
+   *           if (heap !== 0) {
+   *             const bytes = await arg.resolveHeap(heap);
+   *             if (bytes !== undefined) {
+   *               const view = new DataView(bytes);
+   *               const count = bytes.byteLength / 2;
+   *               for (let x = 0; x < count; x++) {
+   *                 list.push(view.getInt16(2 * x, true))
+   *               }
+   *             }
+   *           }
+   *           return list;
+   *         };
+   *       }
+   *       return undefined;
+   *     },
+   *   }
+   * );
+   * 
+   * ```
+   * 
+   * @param propertyType A numeric like `0x1002`
+   * @returns A valid PrimitiveTypeConverter; otherwise,
+   * return `undefined` to indicate to find another type converter.
    */
-  provideTypeConverterOf?: (type: number) => PrimitiveTypeConverter | undefined;
+  provideTypeConverterOf?: (propertyType: number) => PrimitiveTypeConverter | undefined;
 }
