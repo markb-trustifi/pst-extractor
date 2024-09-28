@@ -6,7 +6,7 @@ import { PropertyTypeObject } from "./PropertyTypeObject";
 import { PropertyValueResolver } from "./PropertyValueResolver";
 import { PSTUtil } from "./PSTUtil.class";
 
-interface PrimitiveTypeConverterArg {
+export interface PrimitiveTypeConverterArg {
   view: DataView;
   heap: PHNodeHeapReader;
   getBytes: (numBytes: number) => Promise<ArrayBuffer | undefined>;
@@ -14,7 +14,7 @@ interface PrimitiveTypeConverterArg {
   convertAnsiString: (array: ArrayBuffer) => Promise<string>;
 }
 
-type PrimitiveTypeConverter = (
+export type PrimitiveTypeConverter = (
   arg: PrimitiveTypeConverterArg
 ) => Promise<any>;
 
@@ -281,11 +281,26 @@ function mixIntoOne(array: ArrayBuffer[]): ArrayBuffer {
 
 export class PropertyValueResolverV1 implements PropertyValueResolver {
   private convertAnsiString: (array: ArrayBuffer) => Promise<string>;
+  private provideTypeConverterOf: ((type: number) => PrimitiveTypeConverter | undefined);
 
   constructor(
-    convertAnsiString: (array: ArrayBuffer) => Promise<string>
+    convertAnsiString: (array: ArrayBuffer) => Promise<string>,
+    provideTypeConverterOf?: (type: number) => PrimitiveTypeConverter | undefined
   ) {
     this.convertAnsiString = convertAnsiString;
+    this.provideTypeConverterOf = type => {
+      if (provideTypeConverterOf) {
+        const converter = provideTypeConverterOf(type);
+        if (converter) {
+          return converter;
+        }
+      }
+      const converter = typeConverters[type];
+      if (converter) {
+        return converter;
+      }
+      return undefined;
+    };
   }
 
   async resolveValueOf(
@@ -302,8 +317,8 @@ export class PropertyValueResolverV1 implements PropertyValueResolver {
       );
     }
 
-    const converter = typeConverters[type];
-    if (converter === undefined) {
+    const converter = this.provideTypeConverterOf(type);
+    if (converter === undefined || converter === null) {
       throw new Error(`property type 0x${type.toString(16)} is unknown. please define a typeConverter in PropertyValueResolverV1.ts`);
     }
 
