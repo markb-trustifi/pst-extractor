@@ -103,5 +103,8 @@
       "text",
       "cobertura"
     ]
-  }
+  },
+  "files": [
+    "dist"
+  ]
 }

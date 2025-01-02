@@ -60,7 +60,9 @@ export async function openPst(
       ));
 
   const resolver = new PropertyValueResolverV1(
-    convertAnsiString
+    convertAnsiString,
+    opts?.provideTypeConverterOf,
+    opts?.provideFallbackTypeConverterOf
   );
 
   const nodeMap = await processNameToIDMap(

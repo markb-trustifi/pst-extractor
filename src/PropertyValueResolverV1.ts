@@ -6,15 +6,55 @@ import { PropertyTypeObject } from "./PropertyTypeObject";
 import { PropertyValueResolver } from "./PropertyValueResolver";
 import { PSTUtil } from "./PSTUtil.class";
 
-interface PrimitiveTypeConverterArg {
+export interface PrimitiveTypeConverterArg {
+  /**
+   * Access to raw property value.
+   * 
+   * Do not modify the contents.
+   */
   view: DataView;
+
+  /**
+   * Access to heap reader.
+   */
   heap: PHNodeHeapReader;
+
+  /**
+   * Get bytes from either raw property value or heap.
+   */
   getBytes: (numBytes: number) => Promise<ArrayBuffer | undefined>;
+
+  /**
+   * Resolve heap by hnid.
+   */
   resolveHeap: (heap: number) => Promise<ArrayBuffer | undefined>;
+
+  /**
+   * Convert ansiString to unicode string.
+   */
   convertAnsiString: (array: ArrayBuffer) => Promise<string>;
 }
 
-type PrimitiveTypeConverter = (
+/**
+ * @example
+ * 
+ * ```ts
+ * async function convertShortProperty(arg: PrimitiveTypeConverterArg): Promise<any> {
+ *  return arg.view.getInt16(0, true);
+ * }
+ * ```
+ * 
+ * ```ts
+ * async function convertAnsiStringProperty(arg: PrimitiveTypeConverterArg): Promise<any> {
+ *   const heap = arg.view.getUint32(0, true);
+ *   const bytes = await arg.resolveHeap(heap);
+ *   return (bytes !== undefined)
+ *     ? await arg.convertAnsiString(bytes)
+ *     : undefined;
+ * }
+ * ```
+ */
+export type PrimitiveTypeConverter = (
   arg: PrimitiveTypeConverterArg
 ) => Promise<any>;
 
@@ -42,6 +82,7 @@ const PT_MV_SHORT = 0x1002;
 const PT_MV_LONG = 0x1003;
 const PT_MV_LONGLONG = 0x1014;
 const PT_MV_CLSID = 0x1048;
+const PT_MV_SHORT = 0x1002;
 
 const PT_MVPV_BINARY = 0x2102;
 
@@ -234,6 +275,21 @@ typeConverters[PT_MV_CLSID] = async (arg) => {
   }
   return list;
 };
+typeConverters[PT_MV_SHORT] = async (arg) => {
+  const heap = arg.view.getUint32(0, true);
+  const list = [] as any[];
+  if (heap !== 0) {
+    const bytes = await arg.resolveHeap(heap);
+    if (bytes !== undefined) {
+      const view = new DataView(bytes);
+      const count = bytes.byteLength / 2;
+      for (let x = 0; x < count; x++) {
+        list.push(view.getInt16(2 * x, true))
+      }
+    }
+  }
+  return list;
+};
 typeConverters[PT_MV_STRING8] = async (arg) => {
   const heap = arg.view.getUint32(0, true);
   const list = [] as any[];
@@ -303,11 +359,33 @@ function mixIntoOne(array: ArrayBuffer[]): ArrayBuffer {
 
 export class PropertyValueResolverV1 implements PropertyValueResolver {
   private convertAnsiString: (array: ArrayBuffer) => Promise<string>;
+  private provideTypeConverterOf: ((type: number) => PrimitiveTypeConverter | undefined);
 
   constructor(
-    convertAnsiString: (array: ArrayBuffer) => Promise<string>
+    convertAnsiString: (array: ArrayBuffer) => Promise<string>,
+    provideTypeConverterOf?: (type: number) => PrimitiveTypeConverter | undefined,
+    provideFallbackTypeConverterOf?: (type: number) => PrimitiveTypeConverter | undefined
   ) {
     this.convertAnsiString = convertAnsiString;
+    this.provideTypeConverterOf = type => {
+      if (provideTypeConverterOf) {
+        const converter = provideTypeConverterOf(type);
+        if (converter) {
+          return converter;
+        }
+      }
+      const converter = typeConverters[type];
+      if (converter) {
+        return converter;
+      }
+      if (provideFallbackTypeConverterOf) {
+        const converter = provideFallbackTypeConverterOf(type);
+        if (converter) {
+          return converter;
+        }
+      }
+      return undefined;
+    };
   }
 
   async resolveValueOf(
@@ -324,8 +402,8 @@ export class PropertyValueResolverV1 implements PropertyValueResolver {
       );
     }
 
-    const converter = typeConverters[type];
-    if (converter === undefined) {
+    const converter = this.provideTypeConverterOf(type);
+    if (converter === undefined || converter === null) {
       throw new Error(`property type 0x${type.toString(16)} is unknown. please define a typeConverter in PropertyValueResolverV1.ts`);
     }
 
