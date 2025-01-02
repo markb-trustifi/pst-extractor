@@ -152,21 +152,6 @@ typeConverters[PT_MV_BINARY] = (arg) => __awaiter(void 0, void 0, void 0, functi
     }
     return list;
 });
-typeConverters[PT_MV_SHORT] = (arg) => __awaiter(void 0, void 0, void 0, function* () {
-    const heap = arg.view.getUint32(0, true);
-    const list = [];
-    if (heap !== 0) {
-        const bytes = yield arg.resolveHeap(heap);
-        if (bytes !== undefined) {
-            const view = new DataView(bytes);
-            const count = bytes.byteLength / 2;
-            for (let x = 0; x < count; x++) {
-                list.push(view.getInt16(2 * x, true));
-            }
-        }
-    }
-    return list;
-});
 typeConverters[PT_MV_LONG] = (arg) => __awaiter(void 0, void 0, void 0, function* () {
     const heap = arg.view.getUint32(0, true);
     const list = [];
