@@ -35,7 +35,7 @@ class PSTFile {
         this._store = store;
         this._resolver = new PropertyValueResolverV1_1.PropertyValueResolverV1((array) => __awaiter(this, void 0, void 0, function* () {
             return iconv_lite_1.default.decode(Buffer.from(array), (opts && opts.ansiEncoding) || "latin1");
-        }));
+        }), opts === null || opts === void 0 ? void 0 : opts.provideTypeConverterOf, opts === null || opts === void 0 ? void 0 : opts.provideFallbackTypeConverterOf);
     }
     /**
      * Close the file.

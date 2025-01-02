@@ -34,10 +34,10 @@ const PT_SVREID = 0x00FB;
 const PT_MV_UNICODE = 0x101F;
 const PT_MV_STRING8 = 0x101E;
 const PT_MV_BINARY = 0x1102;
-const PT_MV_SHORT = 0x1002;
 const PT_MV_LONG = 0x1003;
 const PT_MV_LONGLONG = 0x1014;
 const PT_MV_CLSID = 0x1048;
+const PT_MV_SHORT = 0x1002;
 const PT_MVPV_BINARY = 0x2102;
 typeConverters[PT_SHORT] = (arg) => __awaiter(void 0, void 0, void 0, function* () {
     return arg.view.getInt16(0, true);
@@ -214,6 +214,21 @@ typeConverters[PT_MV_CLSID] = (arg) => __awaiter(void 0, void 0, void 0, functio
     }
     return list;
 });
+typeConverters[PT_MV_SHORT] = (arg) => __awaiter(void 0, void 0, void 0, function* () {
+    const heap = arg.view.getUint32(0, true);
+    const list = [];
+    if (heap !== 0) {
+        const bytes = yield arg.resolveHeap(heap);
+        if (bytes !== undefined) {
+            const view = new DataView(bytes);
+            const count = bytes.byteLength / 2;
+            for (let x = 0; x < count; x++) {
+                list.push(view.getInt16(2 * x, true));
+            }
+        }
+    }
+    return list;
+});
 typeConverters[PT_MV_STRING8] = (arg) => __awaiter(void 0, void 0, void 0, function* () {
     const heap = arg.view.getUint32(0, true);
     const list = [];
@@ -270,8 +285,27 @@ function mixIntoOne(array) {
     }
 }
 class PropertyValueResolverV1 {
-    constructor(convertAnsiString) {
+    constructor(convertAnsiString, provideTypeConverterOf, provideFallbackTypeConverterOf) {
         this.convertAnsiString = convertAnsiString;
+        this.provideTypeConverterOf = type => {
+            if (provideTypeConverterOf) {
+                const converter = provideTypeConverterOf(type);
+                if (converter) {
+                    return converter;
+                }
+            }
+            const converter = typeConverters[type];
+            if (converter) {
+                return converter;
+            }
+            if (provideFallbackTypeConverterOf) {
+                const converter = provideFallbackTypeConverterOf(type);
+                if (converter) {
+                    return converter;
+                }
+            }
+            return undefined;
+        };
     }
     resolveValueOf(key, type, value, heap) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -281,8 +315,8 @@ class PropertyValueResolverV1 {
                     return mixIntoOne(yield heap.getHeapBuffers(hnid));
                 });
             }
-            const converter = typeConverters[type];
-            if (converter === undefined) {
+            const converter = this.provideTypeConverterOf(type);
+            if (converter === undefined || converter === null) {
                 throw new Error(`property type 0x${type.toString(16)} is unknown. please define a typeConverter in PropertyValueResolverV1.ts`);
             }
             return yield converter({

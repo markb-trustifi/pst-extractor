@@ -59,7 +59,7 @@ function openPst(api, opts) {
             || ((array) => __awaiter(this, void 0, void 0, function* () {
                 return iconv_lite_1.default.decode(Buffer.from(array), (opts && opts.ansiEncoding) || "latin1");
             }));
-        const resolver = new PropertyValueResolverV1_1.PropertyValueResolverV1(convertAnsiString);
+        const resolver = new PropertyValueResolverV1_1.PropertyValueResolverV1(convertAnsiString, opts === null || opts === void 0 ? void 0 : opts.provideTypeConverterOf, opts === null || opts === void 0 ? void 0 : opts.provideFallbackTypeConverterOf);
         const nodeMap = yield (0, PAUtil_1.processNameToIDMap)(yield lowPst.getOneNodeByOrError(97), resolver);
         return new PSTFile_class_1.PSTFile(lowPst, nodeMap, opts);
     });
