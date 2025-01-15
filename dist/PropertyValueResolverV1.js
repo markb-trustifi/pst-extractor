@@ -29,13 +29,10 @@ const PT_SYSTIME = 0x40;
 const PT_CLSID = 0x48;
 const PT_SHORT = 0x2;
 const PT_FLOAT = 0x4;
-const PT_BINARY = 0x0102;
-const PT_SVREID = 0x00FB;
 const PT_MV_UNICODE = 0x101F;
 const PT_MV_STRING8 = 0x101E;
 const PT_MV_BINARY = 0x1102;
 const PT_MV_LONG = 0x1003;
-const PT_MV_LONGLONG = 0x1014;
 const PT_MV_CLSID = 0x1048;
 const PT_MV_SHORT = 0x1002;
 const PT_MVPV_BINARY = 0x2102;
@@ -106,12 +103,7 @@ typeConverters[PT_CLSID] = (arg) => __awaiter(void 0, void 0, void 0, function* 
     const bytes = yield arg.resolveHeap(heap);
     return bytes;
 });
-typeConverters[PT_BINARY] = (arg) => __awaiter(void 0, void 0, void 0, function* () {
-    const heap = arg.view.getUint32(0, true);
-    const bytes = yield arg.resolveHeap(heap);
-    return bytes;
-});
-typeConverters[PT_SVREID] = (arg) => __awaiter(void 0, void 0, void 0, function* () {
+typeConverters[0x0102] = (arg) => __awaiter(void 0, void 0, void 0, function* () {
     const heap = arg.view.getUint32(0, true);
     const bytes = yield arg.resolveHeap(heap);
     return bytes;
@@ -162,21 +154,6 @@ typeConverters[PT_MV_LONG] = (arg) => __awaiter(void 0, void 0, void 0, function
             const count = bytes.byteLength / 4;
             for (let x = 0; x < count; x++) {
                 list.push(view.getInt32(4 * x, true));
-            }
-        }
-    }
-    return list;
-});
-typeConverters[PT_MV_LONGLONG] = (arg) => __awaiter(void 0, void 0, void 0, function* () {
-    const heap = arg.view.getUint32(0, true);
-    const list = [];
-    if (heap !== 0) {
-        const bytes = yield arg.resolveHeap(heap);
-        if (bytes !== undefined) {
-            const view = new DataView(bytes);
-            const count = bytes.byteLength / 8;
-            for (let x = 0; x < count; x++) {
-                list.push((0, PLUtil_1.readLong)(view, x * 8));
             }
         }
     }

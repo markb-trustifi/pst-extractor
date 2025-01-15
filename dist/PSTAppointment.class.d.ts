@@ -146,7 +146,6 @@ export declare class PSTAppointment extends PSTMessage {
      * @memberof PSTAppointment
      */
     get timezone(): Buffer | null;
-    get timeZoneDescription(): string;
     /**
      * Specifies a list of all the attendees except for the organizer, including resources and unsendable attendees.
      * https://msdn.microsoft.com/en-us/library/office/cc815418.aspx
@@ -243,7 +242,6 @@ export declare class PSTAppointment extends PSTMessage {
      * @memberof PSTAppointment
      */
     get appointmentCounterProposal(): boolean;
-    get appointmentUnsendableRecipients(): boolean;
     /**
      * Indicates whether the user did not include any text in the body of the Meeting Response object.
      * https://msdn.microsoft.com/en-us/library/ee159822(v=exchg.80).aspx
@@ -260,10 +258,6 @@ export declare class PSTAppointment extends PSTMessage {
      * @memberof PSTAppointment
      */
     get requiredAttendees(): string;
-    get optionalAttendees(): string;
-    get resourceAttendees(): string;
-    get commonStart(): Date | null;
-    get commonEnd(): Date | null;
     /**
      * Contains the Windows Locale ID of the end-user who created this message.
      * https://msdn.microsoft.com/en-us/library/ee201602(v=exchg.80).aspx
